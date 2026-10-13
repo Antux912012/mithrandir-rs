@@ -1,0 +1,18 @@
+[Desktop Entry]
+Name=Mithrandir
+Comment=Modern GNU/Linux Cleaner, Optimizer, Telemetry & Diagnostics in Rust
+Exec=mithrandir-rs %U
+Icon=io.github.antonio.Mithrandir
+Terminal=false
+Type=Application
+Categories=Utility;System;
+StartupNotify=true
+Actions=smart-boost;monitor;
+
+[Desktop Action smart-boost]
+Name=⚡ Smart Boost
+Exec=mithrandir-rs --smart-boost
+
+[Desktop Action monitor]
+Name=📊 System Monitor
+Exec=mithrandir-rs --monitor
