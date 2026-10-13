@@ -1,21 +1,31 @@
 # Mithrandir-RS (Rust Edition) 🦀
 
-**Mithrandir-RS** is a blazing-fast, modern GNU/Linux system cleaner, optimizer, telemetry monitor, and diagnostics utility rewritten in **Rust** with **GTK4** and **Libadwaita**.
+> [!WARNING]
+> **Mithrandir-RS is an EXPERIMENTAL preview release.**  
+> This Rust port is under active early development. Many features and deep system integrations from the original Mithrandir are still missing or partially implemented.  
+> If you are looking for the full-featured, mature, and stable version with complete system maintenance tools and package managers, please use the original [**Mithrandir (Python & Libadwaita Edition)**](https://github.com/Antux912012/mithrandir).
 
-Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mithrandir-RS brings native compiled speed, instant responsiveness, and minimal system footprint compared to the Python edition.
+**Mithrandir-RS** is an experimental, blazing-fast exploration rewriting the core of Mithrandir in **Rust** with **GTK4** and **Libadwaita**, focusing on native execution speed, instantaneous startup times, and minimal memory overhead.
+
+Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mithrandir-RS explores native compiled speed while progressive feature parity with the main project is being developed.
 
 ---
 
-## ✨ Highlights & Features
+## ⚡ Current Preview Status
 
-- **Terracotta Theme (`#B7410E`)**: Distinctive Rust-branded color palette across HeaderBar, Navigation, cards, and app icons.
-- **Instantaneous performance**: Native compiled binary with sub-20ms startup time.
-- **Minimal memory footprint**: Runs at ~15–20 MB RSS (ideal for an always-on background optimizer).
-- **Parallel multi-threaded scanning**: Powered by `rayon` to scan tens of thousands of cache entries across CPU cores in milliseconds.
-- **Smart Boost**: Reclaims standby kernel pagecache buffers (`drop_caches`), compacts memory, and cleans temporary file clutter.
-- **Hardware Telemetry**: Real-time CPU, RAM, disk, and sensor monitoring via `sysinfo`.
-- **Parallel Cleaner Engine**: High-speed, protected multi-threaded file cleaner with strict root safety guards.
-- **GNOME Integration**: D-Bus deep-linking, Libadwaita adaptive layouts, and desktop notifications.
+| Feature / Area | Original [Mithrandir](https://github.com/Antux912012/mithrandir) | Mithrandir-RS (Rust) | Status |
+| :--- | :--- | :--- | :--- |
+| **System Dashboard & Telemetry** | Full | Full (sysinfo) | ✅ Parity |
+| **Smart Boost (RAM & Cache trim)**| Full | Full (PC Manager style) | ✅ Parity |
+| **Multi-Threaded Cache Cleaner** | Full | Basic categories | ⚠️ In progress |
+| **Process & Task Explorer** | Full (Stacer style) | Basic PID/Memory/CPU | ⚠️ In progress |
+| **Startup Applications** | Full | Desktop autostart toggle | ⚠️ In progress |
+| **Systemd Services Manager** | Full with unit logs | Unit list & toggle | ⚠️ In progress |
+| **Package Uninstaller** | APT, DNF, Pacman, Flatpak, Snap, pip | Basic list & remove | ⚠️ In progress |
+| **Anti-Malware (ClamAV)** | Full scanner & signatures | Engine detection & scan | ⚠️ In progress |
+| **BTRFS Snapshots** | Automated snapshots & restore | Basic subvolume list | ⚠️ In progress |
+| **GRUB Bootloader** | Full timeout & kernel select | Timeout & default entry | ⚠️ In progress |
+| **AI Diagnostics & Local LLM** | Ollama & Gemini integration | Not yet ported | ❌ Missing |
 
 ---
 
@@ -41,7 +51,7 @@ flatpak run io.github.antonio.MithrandirRS
 
 ## 🚀 CLI Usage
 
-Mithrandir-RS can be run as a full Libadwaita GUI app or invoked directly from the terminal and script hooks:
+Mithrandir-RS can be run as a full Libadwaita GUI app or invoked directly from the terminal:
 
 ```bash
 # Launch the Libadwaita GUI
@@ -76,12 +86,8 @@ make flatpak
 make test
 ```
 
-### Manual Cargo Build
-```bash
-# Backend CLI only
-cargo build --release
+---
 
-# Full GTK4 + Libadwaita GUI (using GNOME 50 SDK)
-flatpak run --devel --filesystem=home --command=sh org.gnome.Sdk//50 -c \
-  "export PATH=\$HOME/.cargo/bin:\$PATH && cargo build --release --features gui"
-```
+## 🔗 Related Projects
+
+- **[Mithrandir (Original Python / Libadwaita Edition)](https://github.com/Antux912012/mithrandir)**: The primary, production-ready GNU/Linux system cleaner, optimizer, telemetry, and diagnostics suite.
