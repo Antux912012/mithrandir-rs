@@ -1,4 +1,4 @@
-.PHONY: all build test check clean deb flatpak
+.PHONY: all build test check clean deb flatpak publish
 
 all: build deb flatpak
 
@@ -19,6 +19,9 @@ deb:
 
 flatpak:
 	./packaging/build_flatpak.sh
+
+publish:
+	./packaging/publish_github.sh
 
 clean:
 	cargo clean
