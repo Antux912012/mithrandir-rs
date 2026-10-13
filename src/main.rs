@@ -1,4 +1,6 @@
 use mithrandir_rs::{CleanerEngine, SmartBoostEngine, SystemMonitor};
+#[cfg(feature = "gui")]
+use mithrandir_rs::BackgroundDaemon;
 use std::env;
 
 fn main() {
@@ -45,13 +47,27 @@ fn main() {
     {
         use libadwaita as adw;
         use adw::prelude::*;
+
+        let keep_alive = args.iter().any(|a| a == "--keep-alive");
+
+        // Start background optimization monitor thread (runs every 60s)
+        std::thread::spawn(|| {
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(60));
+                // Automatically triggers boost if RAM >= 85%
+                BackgroundDaemon::run_auto_boost_check(85.0);
+            }
+        });
+
         let app = adw::Application::builder()
             .application_id("io.github.antonio.MithrandirRS")
             .build();
 
-        app.connect_activate(|app| {
+        app.connect_activate(move |app| {
             let win = mithrandir_rs::ui::MithrandirWindow::build(app);
-            win.present();
+            if !keep_alive {
+                win.present();
+            }
         });
 
         app.run();
@@ -61,8 +77,10 @@ fn main() {
     {
         println!("Mithrandir-RS v0.1.0 (GNU/Linux System Cleaner & Optimizer in Rust)");
         println!("Usage:");
+        println!("  mithrandir-rs                 Launch Libadwaita GUI");
         println!("  mithrandir-rs --smart-boost   One-click RAM and cache boost");
         println!("  mithrandir-rs --monitor       Real-time system telemetry");
         println!("  mithrandir-rs --clean         Scan system clutter and cache");
+        println!("  mithrandir-rs --keep-alive    Run background daemon on login");
     }
 }

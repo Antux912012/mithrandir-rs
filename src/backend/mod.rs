@@ -1,7 +1,23 @@
 pub mod monitor;
 pub mod cleaner;
 pub mod smart_boost;
+pub mod processes;
+pub mod autostart;
+pub mod services;
+pub mod packages;
+pub mod btrfs;
+pub mod grub;
+pub mod antivirus;
+pub mod indicator;
 
 pub use monitor::SystemMonitor;
 pub use cleaner::{CleanerEngine, CleanCategory};
 pub use smart_boost::SmartBoostEngine;
+pub use processes::{ProcessManager, ProcessItem};
+pub use autostart::{AutostartManager, AutostartEntry};
+pub use services::{ServiceManager, ServiceInfo};
+pub use packages::{PackageManager, PackageItem};
+pub use btrfs::{BtrfsManager, BtrfsSnapshot};
+pub use grub::{GrubManager, GrubConfig};
+pub use antivirus::{AntivirusEngine, ThreatFinding, ClamStatus};
+pub use indicator::{NotificationManager, BackgroundDaemon};

@@ -1,6 +1,25 @@
 pub mod theme;
 pub mod dashboard;
+pub mod cleaner;
+pub mod processes;
+pub mod autostart;
+pub mod services;
+pub mod uninstaller;
+pub mod antivirus;
+pub mod btrfs;
+pub mod grub;
+pub mod preferences;
 pub mod window;
 
 pub use window::MithrandirWindow;
 pub use theme::ThemeManager;
+pub use dashboard::DashboardPage;
+pub use cleaner::CleanerPage;
+pub use processes::ProcessesPage;
+pub use autostart::AutostartPage;
+pub use services::ServicesPage;
+pub use uninstaller::UninstallerPage;
+pub use antivirus::AntivirusPage;
+pub use btrfs::BtrfsPage;
+pub use grub::GrubPage;
+pub use preferences::PreferencesDialog;
