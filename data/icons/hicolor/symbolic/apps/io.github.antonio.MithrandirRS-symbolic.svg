@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Mithrandir-RS Symbolic Icon -->
+  <path d="M 8 1 L 9 4 L 12 5 L 9 6 L 8 9 L 7 6 L 4 5 L 7 4 Z" fill="#2e3436"/>
+  <path d="M 9 7 L 6.5 11 L 8.5 11 L 7.5 15 L 11 10 L 9 10 Z" fill="#2e3436"/>
+  <circle cx="13" cy="3" r="1" fill="#2e3436"/>
+  <circle cx="3" cy="12" r="1" fill="#2e3436"/>
+</svg>

@@ -1,0 +1,13 @@
+Package: mithrandir-rs
+Version: 0.1.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Antonio <antonio@localhost>
+Depends: libgtk-4-1, libadwaita-1-0, dconf-gsettings-backend | gsettings-backend
+Recommends: papirus-icon-theme
+Homepage: https://github.com/Antux912012/mithrandir-rs
+Description: Modern GNU/Linux System Cleaner, Optimizer, Telemetry & Diagnostics in Rust
+ Mithrandir-RS is a blazing-fast, Libadwaita-based GNU/Linux maintenance utility
+ written in Rust. Features include instant one-click Smart Boost, real-time hardware
+ and memory telemetry, parallel clutter cleanup, and GNOME Shell panel integration.

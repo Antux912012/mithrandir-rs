@@ -1,0 +1,53 @@
+{
+  "app-id": "io.github.antonio.MithrandirRS",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "50",
+  "sdk": "org.gnome.Sdk",
+  "command": "mithrandir-rs",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=home",
+    "--filesystem=~/.var/app",
+    "--filesystem=xdg-cache",
+    "--filesystem=xdg-config/autostart",
+    "--talk-name=org.freedesktop.Flatpak",
+    "--system-talk-name=org.freedesktop.systemd1",
+    "--talk-name=org.freedesktop.secrets",
+    "--talk-name=org.kde.StatusNotifierWatcher"
+  ],
+  "cleanup": [
+    "/include",
+    "/lib/pkgconfig",
+    "/man",
+    "/share/doc",
+    "/share/gtk-doc",
+    "/share/man",
+    "/share/pkgconfig",
+    "*.la",
+    "*.a"
+  ],
+  "modules": [
+    {
+      "name": "mithrandir-rs",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -Dm755 target/release/mithrandir-rs /app/bin/mithrandir-rs",
+        "install -Dm644 data/io.github.antonio.MithrandirRS.desktop /app/share/applications/io.github.antonio.MithrandirRS.desktop",
+        "install -Dm644 data/io.github.antonio.MithrandirRS.gschema.xml /app/share/glib-2.0/schemas/io.github.antonio.MithrandirRS.gschema.xml",
+        "glib-compile-schemas /app/share/glib-2.0/schemas/",
+        "mkdir -p /app/share/icons/hicolor",
+        "cp -r data/icons/hicolor/* /app/share/icons/hicolor/"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "."
+        }
+      ]
+    }
+  ]
+}

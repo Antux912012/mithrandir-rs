@@ -43,8 +43,18 @@ fn main() {
 
     #[cfg(feature = "gui")]
     {
-        // When GUI feature is active, launch AdwApplication
-        println!("🚀 Launching Mithrandir-RS GUI...");
+        use libadwaita as adw;
+        use adw::prelude::*;
+        let app = adw::Application::builder()
+            .application_id("io.github.antonio.MithrandirRS")
+            .build();
+
+        app.connect_activate(|app| {
+            let win = mithrandir_rs::ui::MithrandirWindow::build(app);
+            win.present();
+        });
+
+        app.run();
     }
 
     #[cfg(not(feature = "gui"))]

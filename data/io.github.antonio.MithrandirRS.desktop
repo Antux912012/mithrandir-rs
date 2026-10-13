@@ -1,8 +1,9 @@
 [Desktop Entry]
-Name=Mithrandir
+Name=Mithrandir (Rust)
+GenericName=System Cleaner and Performance Optimizer
 Comment=Modern GNU/Linux Cleaner, Optimizer, Telemetry & Diagnostics in Rust
 Exec=mithrandir-rs %U
-Icon=io.github.antonio.Mithrandir
+Icon=io.github.antonio.MithrandirRS
 Terminal=false
 Type=Application
 Categories=Utility;System;

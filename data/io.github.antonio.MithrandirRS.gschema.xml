@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="io.github.antonio.Mithrandir">
-  <schema id="io.github.antonio.Mithrandir" path="/io/github/antonio/Mithrandir/">
+<schemalist gettext-domain="io.github.antonio.MithrandirRS">
+  <schema id="io.github.antonio.MithrandirRS" path="/io/github/antonio/MithrandirRS/">
     <key name="window-width" type="i">
       <default>1080</default>
       <summary>Window width</summary>
