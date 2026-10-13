@@ -70,5 +70,6 @@ fi
 echo "==> Pushing 'main' branch to ${REMOTE_URL}..."
 # Use in-memory credential push to prevent storing token in .git/config
 git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${USER_LOGIN}/${REPO_NAME}.git" main:main -u
+git config branch.main.remote origin
 
 echo "==> Successfully published to: https://github.com/${USER_LOGIN}/${REPO_NAME}"
