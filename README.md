@@ -1,4 +1,23 @@
-# Mithrandir-RS (Rust Edition) 🦀
+<p align="center">
+  <img src="data/icons/hicolor/scalable/apps/io.github.antonio.MithrandirRS.svg" width="128" height="128" alt="Mithrandir-RS Application Icon" />
+</p>
+
+<h1 align="center">Mithrandir-RS (Rust Edition) 🦀</h1>
+
+<p align="center">
+  <strong>Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Performance Booster</strong><br>
+  <em>Blazing-fast native execution, instant startup, and low memory overhead written in Rust.</em>
+</p>
+
+<p align="center">
+  <a href="#-installation"><img src="https://img.shields.io/badge/version-0.4.0--preview-orange.svg" alt="Version" /></a>
+  <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later" /></a>
+  <a href="https://gtk.org/"><img src="https://img.shields.io/badge/GUI-GTK%204%20%7C%20Libadwaita-brightgreen.svg" alt="GTK4 & Libadwaita" /></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.80%2B-informational.svg" alt="Rust 1.80+" /></a>
+  <a href="https://github.com/Antux912012/mithrandir-rs"><img src="https://img.shields.io/badge/Platform-GNU%2FLinux-orange.svg" alt="Platform" /></a>
+</p>
+
+---
 
 > [!WARNING]
 > **Mithrandir-RS is an EXPERIMENTAL preview release.**  
