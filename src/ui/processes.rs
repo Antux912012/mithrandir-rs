@@ -11,6 +11,13 @@ use std::rc::Rc;
 use std::sync::mpsc;
 use crate::backend::processes::{ProcessItem, ProcessManager};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SortOrder {
+    Ram,
+    Cpu,
+    Name,
+}
+
 pub struct ProcessesPage;
 
 impl ProcessesPage {
@@ -40,12 +47,30 @@ impl ProcessesPage {
             .hexpand(true)
             .build();
 
+        let sort_ram_btn = Button::builder()
+            .label("RAM ↓")
+            .tooltip_text("Sort by memory usage")
+            .build();
+
+        let sort_cpu_btn = Button::builder()
+            .label("CPU ↓")
+            .tooltip_text("Sort by processor load")
+            .build();
+
+        let sort_name_btn = Button::builder()
+            .label("Name")
+            .tooltip_text("Sort alphabetically")
+            .build();
+
         let refresh_btn = Button::builder()
             .icon_name("view-refresh-symbolic")
             .tooltip_text("Refresh process list")
             .build();
 
         header_box.append(&search_entry);
+        header_box.append(&sort_ram_btn);
+        header_box.append(&sort_cpu_btn);
+        header_box.append(&sort_name_btn);
         header_box.append(&refresh_btn);
         root_box.append(&header_box);
 
@@ -70,11 +95,13 @@ impl ProcessesPage {
 
         let all_procs: Rc<RefCell<Vec<ProcessItem>>> = Rc::new(RefCell::new(Vec::new()));
         let filter_text: Rc<RefCell<String>> = Rc::new(RefCell::new(String::new()));
+        let current_sort: Rc<RefCell<SortOrder>> = Rc::new(RefCell::new(SortOrder::Ram));
 
         let populate_list = {
             let list_box = list_box.clone();
             let all_procs = all_procs.clone();
             let filter_text = filter_text.clone();
+            let current_sort = current_sort.clone();
 
             move || {
                 // Clear existing
@@ -83,7 +110,19 @@ impl ProcessesPage {
                 }
 
                 let query = filter_text.borrow().to_lowercase();
-                let procs = all_procs.borrow();
+                let mut procs = all_procs.borrow().clone();
+
+                match *current_sort.borrow() {
+                    SortOrder::Ram => {
+                        procs.sort_by(|a, b| b.mem_mb.partial_cmp(&a.mem_mb).unwrap_or(std::cmp::Ordering::Equal));
+                    }
+                    SortOrder::Cpu => {
+                        procs.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
+                    }
+                    SortOrder::Name => {
+                        procs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                    }
+                }
 
                 let mut count = 0;
                 for p in procs.iter() {
@@ -153,6 +192,30 @@ impl ProcessesPage {
                 });
             }
         };
+
+        // Connect sort buttons
+        {
+            let cs = current_sort.clone();
+            let pl = populate_list.clone();
+            sort_ram_btn.connect_clicked(move |_| {
+                *cs.borrow_mut() = SortOrder::Ram;
+                pl();
+            });
+
+            let cs2 = current_sort.clone();
+            let pl2 = populate_list.clone();
+            sort_cpu_btn.connect_clicked(move |_| {
+                *cs2.borrow_mut() = SortOrder::Cpu;
+                pl2();
+            });
+
+            let cs3 = current_sort.clone();
+            let pl3 = populate_list.clone();
+            sort_name_btn.connect_clicked(move |_| {
+                *cs3.borrow_mut() = SortOrder::Name;
+                pl3();
+            });
+        }
 
         // Connect search changed
         let filter_clone = filter_text.clone();

@@ -17,6 +17,7 @@ use crate::ui::processes::ProcessesPage;
 use crate::ui::services::ServicesPage;
 use crate::ui::theme::ThemeManager;
 use crate::ui::uninstaller::UninstallerPage;
+use crate::ui::ai::AIPage;
 
 pub struct MithrandirWindow;
 
@@ -90,6 +91,7 @@ impl MithrandirWindow {
         let page_antivirus = AntivirusPage::build();
         let page_btrfs = BtrfsPage::build();
         let page_grub = GrubPage::build();
+        let page_ai = AIPage::build();
 
         stack.add_titled(&page_dashboard, Some("dashboard"), "Dashboard");
         stack.add_titled(&page_cleaner, Some("cleaner"), "Cleaner");
@@ -100,6 +102,7 @@ impl MithrandirWindow {
         stack.add_titled(&page_antivirus, Some("antivirus"), "Anti-Malware");
         stack.add_titled(&page_btrfs, Some("btrfs"), "BTRFS Snapshots");
         stack.add_titled(&page_grub, Some("grub"), "GRUB Bootloader");
+        stack.add_titled(&page_ai, Some("ai"), "AI Diagnostics");
 
         let pages = [
             ("dashboard", "Dashboard", "utilities-system-monitor-symbolic"),
@@ -111,6 +114,7 @@ impl MithrandirWindow {
             ("antivirus", "Anti-Malware", "security-high-symbolic"),
             ("btrfs", "BTRFS Snapshots", "drive-harddisk-symbolic"),
             ("grub", "GRUB Bootloader", "preferences-system-symbolic"),
+            ("ai", "AI Diagnostics", "system-search-symbolic"),
         ];
 
         let stack_rc = Rc::new(stack.clone());
@@ -198,7 +202,7 @@ impl MithrandirWindow {
                     .application_name("Mithrandir-RS")
                     .application_icon("io.github.antonio.MithrandirRS")
                     .developer_name("Antonio")
-                    .version("0.1.0")
+                    .version("0.4.0")
                     .comments("Blazing-fast GNU/Linux System Cleaner, Optimizer, Telemetry & Diagnostics in Rust (GTK4 & Libadwaita)")
                     .website("https://github.com/Antux912012/mithrandir-rs")
                     .license_type(gtk4::License::Gpl30Only)

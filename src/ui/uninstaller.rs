@@ -36,7 +36,7 @@ impl UninstallerPage {
             .halign(Align::Center)
             .build();
 
-        let btn_native = ToggleButton::builder().label("Native (.deb)").active(true).css_classes(vec!["pill"]).build();
+        let btn_native = ToggleButton::builder().label("Native System").active(true).css_classes(vec!["pill"]).build();
         let btn_flatpak = ToggleButton::builder().label("Flatpak").css_classes(vec!["pill"]).build();
         let btn_snap = ToggleButton::builder().label("Snap").css_classes(vec!["pill"]).build();
         let btn_python = ToggleButton::builder().label("Python (pip)").css_classes(vec!["pill"]).build();

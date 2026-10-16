@@ -9,6 +9,7 @@ pub mod antivirus;
 pub mod btrfs;
 pub mod grub;
 pub mod preferences;
+pub mod ai;
 pub mod window;
 
 pub use window::MithrandirWindow;
@@ -23,3 +24,4 @@ pub use antivirus::AntivirusPage;
 pub use btrfs::BtrfsPage;
 pub use grub::GrubPage;
 pub use preferences::PreferencesDialog;
+pub use ai::AIPage;

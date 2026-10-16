@@ -15,17 +15,17 @@ Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mi
 
 | Feature / Area | Original [Mithrandir](https://github.com/Antux912012/mithrandir) | Mithrandir-RS (Rust) | Status |
 | :--- | :--- | :--- | :--- |
-| **System Dashboard & Telemetry** | Full | Full (sysinfo) | ✅ Parity |
-| **Smart Boost (RAM & Cache trim)**| Full | Full (PC Manager style) | ✅ Parity |
-| **Multi-Threaded Cache Cleaner** | Full | Basic categories | ⚠️ In progress |
-| **Process & Task Explorer** | Full (Stacer style) | Basic PID/Memory/CPU | ⚠️ In progress |
-| **Startup Applications** | Full | Desktop autostart toggle | ⚠️ In progress |
-| **Systemd Services Manager** | Full with unit logs | Unit list & toggle | ⚠️ In progress |
-| **Package Uninstaller** | APT, DNF, Pacman, Flatpak, Snap, pip | Basic list & remove | ⚠️ In progress |
-| **Anti-Malware (ClamAV)** | Full scanner & signatures | Engine detection & scan | ⚠️ In progress |
-| **BTRFS Snapshots** | Automated snapshots & restore | Basic subvolume list | ⚠️ In progress |
-| **GRUB Bootloader** | Full timeout & kernel select | Timeout & default entry | ⚠️ In progress |
-| **AI Diagnostics & Local LLM** | Ollama & Gemini integration | Not yet ported | ❌ Missing |
+| **System Dashboard & Telemetry** | Full | Full (CPU, GPU, Network, Temp, Architecture) | ✅ Parity |
+| **Smart Boost (RAM & Cache trim)**| Full | Full (Debounced, Re-entrancy Guard, Cooldown) | ✅ Parity |
+| **Multi-Threaded Cache Cleaner** | Full | Full (Thumbnails, Browser, Stremio, Dev, Trash, Journal) | ✅ Parity |
+| **Process & Task Explorer** | Full (Stacer style) | Live accurate CPU% & RAM, Search, Sorting | ✅ Parity |
+| **Startup Applications** | Full | Desktop autostart management | ✅ Parity |
+| **Systemd Services Manager** | Full with unit logs | Unit inspection & control | ✅ Parity |
+| **Package Uninstaller** | APT, DNF, Pacman, Flatpak, Snap, pip | Multi-distro package management & uninstaller | ✅ Parity |
+| **Anti-Malware (ClamAV)** | Full scanner & signatures | 1-Click Installer, FreshClam Lock Fix, Quarantine Vault | ✅ Parity |
+| **BTRFS Snapshots** | Automated snapshots & restore | Snapshot management & subvolumes | ✅ Parity |
+| **GRUB Bootloader** | Full timeout & kernel select | Timeout & boot configuration | ✅ Parity |
+| **AI Diagnostics & Local LLM** | Ollama, NIM, OpenAI, in-app Qwen | Built-in offline assistant, Qwen 2.5 + llama.cpp engine | ✅ Parity |
 
 ---
 
@@ -35,12 +35,12 @@ Pre-built standalone packages are ready in the repository root:
 
 ### Debian / Ubuntu (`.deb`)
 ```bash
-sudo dpkg -i mithrandir-rs_0.1.0_amd64.deb
+sudo dpkg -i mithrandir-rs_0.4.0_amd64.deb
 ```
 
 ### Flatpak Bundle (`.flatpak`)
 ```bash
-flatpak install --user mithrandir-rs_0.1.0.flatpak
+flatpak install --user mithrandir-rs_0.4.0.flatpak
 ```
 Run via Flatpak:
 ```bash

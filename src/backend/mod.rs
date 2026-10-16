@@ -9,6 +9,9 @@ pub mod btrfs;
 pub mod grub;
 pub mod antivirus;
 pub mod indicator;
+pub mod host_bridge;
+pub mod distro;
+pub mod diagnostics;
 
 pub use monitor::SystemMonitor;
 pub use cleaner::{CleanerEngine, CleanCategory};
@@ -21,3 +24,6 @@ pub use btrfs::{BtrfsManager, BtrfsSnapshot};
 pub use grub::{GrubManager, GrubConfig};
 pub use antivirus::{AntivirusEngine, ThreatFinding, ClamStatus};
 pub use indicator::{NotificationManager, BackgroundDaemon};
+pub use host_bridge::HostBridge;
+pub use distro::{DistroDetector, DistroFamily};
+pub use diagnostics::DiagnosticsCollector;

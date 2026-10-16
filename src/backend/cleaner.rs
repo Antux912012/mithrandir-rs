@@ -2,8 +2,8 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use walkdir::WalkDir;
+use crate::backend::host_bridge::HostBridge;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CleanCategory {
@@ -70,20 +70,34 @@ impl CleanerEngine {
     pub fn get_categories() -> Vec<CleanCategory> {
         let mut list = Vec::new();
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        let home_p = PathBuf::from(&home);
 
         let cats = [
-            ("user_cache", "User Application Cache", "Temporary application cache in ~/.cache", PathBuf::from(&home).join(".cache")),
-            ("flatpak_cache", "Flatpak Applications Cache", "Application caches in ~/.var/app", PathBuf::from(&home).join(".var/app")),
-            ("snap_cache", "Snap Package Cache", "Snap cache data in ~/snap", PathBuf::from(&home).join("snap")),
-            ("thumbnails", "Thumbnail Cache", "Cached image and video thumbnails", PathBuf::from(&home).join(".cache/thumbnails")),
-            ("trash", "Trash Bin", "Deleted files in user Trash", PathBuf::from(&home).join(".local/share/Trash")),
-            ("tmp", "Temporary Files", "Scratch files in /tmp", PathBuf::from("/tmp")),
-            ("package_cache", "Package Manager Cache", "Cached APT/DNF archives", PathBuf::from("/var/cache/apt/archives")),
+            ("thumbnails", "Thumbnail Cache", "Cached image and video thumbnails", home_p.join(".cache/thumbnails")),
+            ("user_cache", "User Application Cache", "Application cache files in ~/.cache", home_p.join(".cache")),
+            ("browser_cache", "Web Browser Caches", "Firefox, Chrome, Chromium, Brave, and Edge caches", home_p.join(".cache/mozilla")),
+            ("stremio_cache", "Stremio Streaming Cache", "Torrent parts and media stream cache", home_p.join(".config/stremio/stremio-cache")),
+            ("dev_cache", "Developer & Package Caches", "Pip, Cargo, and npm package cache directories", home_p.join(".cache/pip")),
+            ("flatpak_cache", "Flatpak Applications Cache", "Application data in ~/.var/app", home_p.join(".var/app")),
+            ("snap_cache", "Snap Package Cache", "Snap cache data in ~/snap", home_p.join("snap")),
+            ("trash", "Trash Bin", "Deleted files in user Trash", home_p.join(".local/share/Trash")),
+            ("tmp", "Temporary Files", "Volatile user files in /tmp", PathBuf::from("/tmp")),
+            ("package_cache", "Package Manager Cache", "Cached APT, DNF, or Pacman package archives", PathBuf::from("/var/cache/apt/archives")),
         ];
 
         for (id, name, desc, path) in cats {
             let (size_bytes, file_count) = if id == "tmp" {
                 Self::scan_user_tmp()
+            } else if id == "browser_cache" {
+                let (s1, c1) = Self::scan_path(&home_p.join(".cache/mozilla"));
+                let (s2, c2) = Self::scan_path(&home_p.join(".cache/google-chrome"));
+                let (s3, c3) = Self::scan_path(&home_p.join(".cache/chromium"));
+                (s1 + s2 + s3, c1 + c2 + c3)
+            } else if id == "dev_cache" {
+                let (s1, c1) = Self::scan_path(&home_p.join(".cache/pip"));
+                let (s2, c2) = Self::scan_path(&home_p.join(".npm/_cacache"));
+                let (s3, c3) = Self::scan_path(&home_p.join(".cargo/registry/cache"));
+                (s1 + s2 + s3, c1 + c2 + c3)
             } else {
                 Self::scan_path(&path)
             };
@@ -162,12 +176,31 @@ impl CleanerEngine {
 
     pub fn clean_category(cat_id: &str) -> CleanResult {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+        let home_p = PathBuf::from(&home);
+
         let (bytes, count) = match cat_id {
-            "user_cache" => Self::clean_path(&PathBuf::from(&home).join(".cache")),
-            "flatpak_cache" => Self::clean_path(&PathBuf::from(&home).join(".var/app")),
-            "snap_cache" => Self::clean_path(&PathBuf::from(&home).join("snap")),
-            "thumbnails" => Self::clean_path(&PathBuf::from(&home).join(".cache/thumbnails")),
-            "trash" => Self::clean_path(&PathBuf::from(&home).join(".local/share/Trash")),
+            "thumbnails" => Self::clean_path(&home_p.join(".cache/thumbnails")),
+            "user_cache" => Self::clean_path(&home_p.join(".cache")),
+            "browser_cache" => {
+                let (b1, c1) = Self::clean_path(&home_p.join(".cache/mozilla"));
+                let (b2, c2) = Self::clean_path(&home_p.join(".cache/google-chrome"));
+                let (b3, c3) = Self::clean_path(&home_p.join(".cache/chromium"));
+                (b1 + b2 + b3, c1 + c2 + c3)
+            }
+            "stremio_cache" => {
+                let (b1, c1) = Self::clean_path(&home_p.join(".config/stremio/stremio-cache"));
+                let (b2, c2) = Self::clean_path(&PathBuf::from("/tmp/stremio-cache"));
+                (b1 + b2, c1 + c2)
+            }
+            "dev_cache" => {
+                let (b1, c1) = Self::clean_path(&home_p.join(".cache/pip"));
+                let (b2, c2) = Self::clean_path(&home_p.join(".npm/_cacache"));
+                let (b3, c3) = Self::clean_path(&home_p.join(".cargo/registry/cache"));
+                (b1 + b2 + b3, c1 + c2 + c3)
+            }
+            "flatpak_cache" => Self::clean_path(&home_p.join(".var/app")),
+            "snap_cache" => Self::clean_path(&home_p.join("snap")),
+            "trash" => Self::clean_path(&home_p.join(".local/share/Trash")),
             "tmp" => {
                 #[cfg(unix)]
                 {
@@ -206,7 +239,8 @@ impl CleanerEngine {
                 }
             }
             "package_cache" => {
-                let _ = Command::new("pkexec").args(["apt-get", "clean"]).status();
+                let _ = HostBridge::run_privileged(&["sh", "-c", "apt-get clean 2>/dev/null || dnf clean all 2>/dev/null || pacman -Scc --noconfirm 2>/dev/null || true"]);
+                let _ = HostBridge::run_privileged(&["journalctl", "--vacuum-time=7d"]);
                 (0, 0)
             }
             _ => (0, 0),
