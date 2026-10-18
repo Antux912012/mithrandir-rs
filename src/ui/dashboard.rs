@@ -1,11 +1,25 @@
 use gtk4::glib;
 use gtk4::prelude::*;
-use gtk4::{Align, Box as GtkBox, Button, Label, Orientation, ProgressBar, ScrolledWindow};
+use gtk4::{
+    Adjustment, Align, Box as GtkBox, Button, FlowBox, Image, Label, ListBox, Orientation,
+    ProgressBar, ScrolledWindow, SelectionMode, Window,
+};
+use libadwaita as adw;
+use adw::prelude::*;
+use adw::{
+    ActionRow, Clamp, PreferencesGroup, PreferencesPage, PreferencesWindow, SpinRow, SwitchRow,
+    Toast, ToastOverlay,
+};
+use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::time::Duration;
-use crate::backend::monitor::{CpuInfo, DiskPartition, GpuInfo, MemoryInfo, NetworkRate, SystemMonitor, SystemSummary};
+use crate::backend::monitor::{
+    BatteryInfo, CpuInfo, DiskPartition, GpuInfo, MemoryInfo, NetworkRate, SystemMonitor,
+    SystemSummary,
+};
 use crate::backend::smart_boost::{BoostStatus, SmartBoostEngine};
 
 struct TelemetrySnapshot {
@@ -13,15 +27,102 @@ struct TelemetrySnapshot {
     cpu: CpuInfo,
     mem: MemoryInfo,
     disks: Vec<DiskPartition>,
+    battery: BatteryInfo,
     net: NetworkRate,
-    gpu: Option<GpuInfo>,
+    gpus: Vec<GpuInfo>,
     boost_status: BoostStatus,
+}
+
+#[derive(Clone)]
+struct MetricTile {
+    container: GtkBox,
+    val_label: Label,
+    progress: ProgressBar,
+    sub_label: Label,
+}
+
+impl MetricTile {
+    fn new(title: &str, icon_name: &str) -> Self {
+        let container = GtkBox::builder()
+            .orientation(Orientation::Vertical)
+            .spacing(8)
+            .width_request(160)
+            .height_request(160)
+            .margin_top(4)
+            .margin_bottom(4)
+            .margin_start(4)
+            .margin_end(4)
+            .build();
+        container.add_css_class("card");
+
+        // Header with icon and title
+        let header = GtkBox::builder()
+            .orientation(Orientation::Horizontal)
+            .spacing(6)
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .build();
+
+        let icon = Image::from_icon_name(icon_name);
+        header.append(&icon);
+
+        let title_lbl = Label::builder().label(title).build();
+        title_lbl.add_css_class("heading");
+        header.append(&title_lbl);
+        container.append(&header);
+
+        // Main value label
+        let val_label = Label::builder().label("--").vexpand(true).build();
+        val_label.add_css_class("title-1");
+        container.append(&val_label);
+
+        // Progress bar
+        let progress = ProgressBar::builder()
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(4)
+            .build();
+        container.append(&progress);
+
+        // Subtitle label
+        let sub_label = Label::builder().label("--").margin_bottom(12).build();
+        sub_label.add_css_class("caption");
+        sub_label.add_css_class("dim-label");
+        container.append(&sub_label);
+
+        Self {
+            container,
+            val_label,
+            progress,
+            sub_label,
+        }
+    }
+
+    fn set_data(&self, val_text: &str, fraction: f64, sub_text: &str) {
+        self.val_label.set_label(val_text);
+        self.progress.set_fraction(fraction.clamp(0.0, 1.0));
+        self.sub_label.set_label(sub_text);
+    }
+
+    fn set_tooltip_text(&self, text: Option<&str>) {
+        self.container.set_tooltip_text(text);
+    }
 }
 
 pub struct DashboardPage;
 
 impl DashboardPage {
-    pub fn build() -> ScrolledWindow {
+    fn create_info_row(title: &str, subtitle: &str, icon_name: &str) -> ActionRow {
+        let row = ActionRow::builder()
+            .title(title)
+            .subtitle(subtitle)
+            .build();
+        row.add_prefix(&Image::from_icon_name(icon_name));
+        row
+    }
+
+    pub fn build(toast_overlay: Option<ToastOverlay>) -> ScrolledWindow {
         let scroller = ScrolledWindow::builder()
             .vexpand(true)
             .hexpand(true)
@@ -30,82 +131,63 @@ impl DashboardPage {
 
         let root_box = GtkBox::builder()
             .orientation(Orientation::Vertical)
-            .spacing(20)
+            .spacing(24)
             .margin_top(24)
             .margin_bottom(24)
             .margin_start(24)
             .margin_end(24)
             .build();
 
-        // 1. System Architecture Summary Banner
-        let summary_card = GtkBox::builder()
-            .orientation(Orientation::Horizontal)
-            .spacing(16)
-            .build();
-        summary_card.add_css_class("metric-card");
-
-        let summary_left = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(4)
-            .hexpand(true)
-            .build();
-
-        let initial_summary = SystemMonitor::get_system_summary();
-        let host_lbl = Label::builder()
-            .label(&format!("💻 {} | {}", initial_summary.hostname, initial_summary.distro))
-            .xalign(0.0)
-            .build();
-        host_lbl.add_css_class("title-3");
-
-        let host_sub = Label::builder()
-            .label(&format!("Kernel: {} | Desktop: {} | Uptime: {}", initial_summary.kernel, initial_summary.desktop, initial_summary.uptime_str))
-            .xalign(0.0)
-            .build();
-        host_sub.add_css_class("dim-label");
-
-        summary_left.append(&host_lbl);
-        summary_left.append(&host_sub);
-        summary_card.append(&summary_left);
-        root_box.append(&summary_card);
-
-        // 2. Smart Boost Hero Card
+        // 1. Microsoft PC Manager Style Smart Boost Banner
         let card = GtkBox::builder()
             .orientation(Orientation::Vertical)
             .spacing(12)
             .build();
         card.add_css_class("smart-boost-card");
 
-        let title_row = GtkBox::builder()
+        // Top row: Icon, Title/Description, Personalise button
+        let top_row = GtkBox::builder()
             .orientation(Orientation::Horizontal)
             .spacing(12)
             .build();
 
-        let lbl_title = Label::builder()
-            .label("⚡ Smart Boost (Rust Engine)")
-            .xalign(0.0)
+        let flash_icon = Image::from_icon_name("media-flash-symbolic");
+        flash_icon.set_pixel_size(24);
+        top_row.append(&flash_icon);
+
+        let title_box = GtkBox::builder()
+            .orientation(Orientation::Vertical)
+            .spacing(2)
             .hexpand(true)
             .build();
-        lbl_title.add_css_class("title-2");
-        title_row.append(&lbl_title);
 
-        let boost_btn = Button::builder()
-            .label("🚀 Boost")
-            .valign(Align::Center)
-            .build();
-        boost_btn.add_css_class("suggested-action");
-        boost_btn.add_css_class("pill");
-        title_row.append(&boost_btn);
-
-        card.append(&title_row);
-
-        let lbl_desc = Label::builder()
-            .label("Instantaneous zero-overhead standby cache eviction and temporary clutter purging")
+        let lbl_title = Label::builder()
+            .label("Smart Boost")
             .xalign(0.0)
             .build();
-        lbl_desc.add_css_class("dim-label");
-        card.append(&lbl_desc);
+        lbl_title.add_css_class("title-3");
+        title_box.append(&lbl_title);
 
-        // Stats Row
+        let lbl_desc = Label::builder()
+            .label("Personalized one-click system performance booster and standby memory trimmer")
+            .xalign(0.0)
+            .build();
+        lbl_desc.add_css_class("caption");
+        lbl_desc.add_css_class("dim-label");
+        title_box.append(&lbl_desc);
+
+        top_row.append(&title_box);
+
+        let pers_btn = Button::builder()
+            .icon_name("emblem-system-symbolic")
+            .tooltip_text("Personalise Smart Boost Rules")
+            .build();
+        pers_btn.add_css_class("flat");
+        top_row.append(&pers_btn);
+
+        card.append(&top_row);
+
+        // Stats row: RAM Usage + Temporary Files + Boost Button
         let stats_row = GtkBox::builder()
             .orientation(Orientation::Horizontal)
             .spacing(24)
@@ -119,145 +201,248 @@ impl DashboardPage {
             .build();
         let ram_label = Label::builder().label("RAM Usage: --%").xalign(0.0).build();
         ram_label.add_css_class("heading");
-        let ram_bar = ProgressBar::builder().build();
+        let ram_bar = ProgressBar::new();
         ram_box.append(&ram_label);
         ram_box.append(&ram_bar);
         stats_row.append(&ram_box);
 
-        let clutter_box = GtkBox::builder()
+        let temp_box = GtkBox::builder()
             .orientation(Orientation::Vertical)
             .spacing(4)
             .hexpand(true)
             .build();
-        let clutter_label = Label::builder().label("Temporary Files: --").xalign(0.0).build();
-        clutter_label.add_css_class("heading");
-        let clutter_sub = Label::builder()
-            .label("Reclaimable standby cache")
+        let clutter_label = Label::builder()
+            .label("Temporary Files: -- MB")
             .xalign(0.0)
             .build();
+        clutter_label.add_css_class("heading");
+        let clutter_sub = Label::builder()
+            .label("Standby cache and clutter cleanable")
+            .xalign(0.0)
+            .build();
+        clutter_sub.add_css_class("caption");
         clutter_sub.add_css_class("dim-label");
-        clutter_box.append(&clutter_label);
-        clutter_box.append(&clutter_sub);
-        stats_row.append(&clutter_box);
+        temp_box.append(&clutter_label);
+        temp_box.append(&clutter_sub);
+        stats_row.append(&temp_box);
+
+        let boost_btn = Button::builder()
+            .label("🚀 Boost")
+            .valign(Align::Center)
+            .build();
+        boost_btn.add_css_class("suggested-action");
+        boost_btn.add_css_class("pill");
+        stats_row.append(&boost_btn);
 
         card.append(&stats_row);
         root_box.append(&card);
 
-        // 3. Real-Time Telemetry Cards
-        let sensors_title = Label::builder()
-            .label("Real-Time Telemetry & Hardware Gauges")
-            .xalign(0.0)
-            .margin_top(8)
-            .build();
-        sensors_title.add_css_class("title-3");
-        root_box.append(&sensors_title);
+        // Personalise Smart Boost Dialog state & handler
+        {
+            let auto_enabled = Rc::new(Cell::new(true));
+            let ram_thresh = Rc::new(Cell::new(80.0f64));
+            let temp_thresh = Rc::new(Cell::new(1024.0f64));
+            let notify_enabled = Rc::new(Cell::new(true));
 
-        let tiles_box = GtkBox::builder()
+            pers_btn.connect_clicked(move |btn| {
+                let dialog = PreferencesWindow::builder()
+                    .title("Personalise Smart Boost")
+                    .modal(true)
+                    .default_width(500)
+                    .default_height(420)
+                    .build();
+
+                if let Some(root) = btn.root().and_then(|r| r.downcast::<Window>().ok()) {
+                    dialog.set_transient_for(Some(&root));
+                }
+
+                let page = PreferencesPage::new();
+                let group = PreferencesGroup::builder()
+                    .title("Automatic Smart Boost Conditions")
+                    .description("Mithrandir will automatically boost performance when thresholds are met")
+                    .build();
+
+                let auto_row = SwitchRow::builder()
+                    .title("Enable Automatic Smart Boost")
+                    .subtitle("Continuously monitors RAM and cache clutter in the background")
+                    .active(auto_enabled.get())
+                    .build();
+                {
+                    let auto_enabled = auto_enabled.clone();
+                    auto_row.connect_active_notify(move |w| {
+                        auto_enabled.set(w.is_active());
+                    });
+                }
+                group.add(&auto_row);
+
+                let ram_row = SpinRow::builder()
+                    .title("Auto-Boost RAM Threshold (%)")
+                    .subtitle("Trigger boost when system memory usage exceeds this percentage")
+                    .adjustment(&Adjustment::new(ram_thresh.get(), 50.0, 95.0, 5.0, 5.0, 0.0))
+                    .build();
+                {
+                    let ram_thresh = ram_thresh.clone();
+                    ram_row.connect_value_notify(move |w| {
+                        ram_thresh.set(w.value());
+                    });
+                }
+                group.add(&ram_row);
+
+                let temp_row = SpinRow::builder()
+                    .title("Auto-Boost Temp Clutter Threshold (MB)")
+                    .subtitle("Trigger boost when cleanable temporary files exceed this size")
+                    .adjustment(&Adjustment::new(temp_thresh.get(), 250.0, 5000.0, 250.0, 250.0, 0.0))
+                    .build();
+                {
+                    let temp_thresh = temp_thresh.clone();
+                    temp_row.connect_value_notify(move |w| {
+                        temp_thresh.set(w.value());
+                    });
+                }
+                group.add(&temp_row);
+
+                let notify_row = SwitchRow::builder()
+                    .title("Show Notification on Boost")
+                    .subtitle("Display desktop toast when Smart Boost reclaims memory and files")
+                    .active(notify_enabled.get())
+                    .build();
+                {
+                    let notify_enabled = notify_enabled.clone();
+                    notify_row.connect_active_notify(move |w| {
+                        notify_enabled.set(w.is_active());
+                    });
+                }
+                group.add(&notify_row);
+
+                page.add(&group);
+                dialog.add(&page);
+                dialog.present();
+            });
+        }
+
+        // 2. Real-Time System Sensors (9 Square MetricTile Cards)
+        let tile_group = PreferencesGroup::builder()
+            .title("Real-Time System Sensors")
+            .description("Live telemetry updating every 3 seconds (Stacer-grade sensor suite)")
+            .build();
+
+        let flow_box = FlowBox::builder()
+            .valign(Align::Start)
+            .max_children_per_line(5)
+            .min_children_per_line(2)
+            .selection_mode(SelectionMode::None)
+            .column_spacing(16)
+            .row_spacing(16)
+            .build();
+
+        let tile_cpu = MetricTile::new("CPU Load", "utilities-system-monitor-symbolic");
+        let tile_mem = MetricTile::new("Memory", "drive-harddisk-symbolic");
+        let tile_disk = MetricTile::new("Root Disk", "drive-multidisk-symbolic");
+        let tile_temp = MetricTile::new("Temperature", "weather-clear-symbolic");
+        let tile_battery = MetricTile::new("Battery", "battery-symbolic");
+        let tile_net_dl = MetricTile::new("Download", "network-receive-symbolic");
+        let tile_net_ul = MetricTile::new("Upload", "network-transmit-symbolic");
+        let tile_gpu0 = MetricTile::new("GPU 0", "video-display-symbolic");
+        let tile_gpu1 = MetricTile::new("GPU 1", "video-display-symbolic");
+
+        flow_box.append(&tile_cpu.container);
+        flow_box.append(&tile_mem.container);
+        flow_box.append(&tile_disk.container);
+        flow_box.append(&tile_temp.container);
+        flow_box.append(&tile_battery.container);
+        flow_box.append(&tile_net_dl.container);
+        flow_box.append(&tile_net_ul.container);
+        flow_box.append(&tile_gpu0.container);
+        flow_box.append(&tile_gpu1.container);
+
+        tile_group.add(&flow_box);
+        root_box.append(&tile_group);
+
+        // 3. System Information on Two Columns
+        let sys_group = PreferencesGroup::builder()
+            .title("System Information")
+            .description("Host configuration and hardware overview")
+            .build();
+
+        let initial_summary = SystemMonitor::get_system_summary();
+
+        let two_col_box = GtkBox::builder()
             .orientation(Orientation::Horizontal)
             .spacing(16)
+            .homogeneous(true)
             .build();
 
-        // CPU Tile
-        let cpu_card = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .hexpand(true)
+        let col1_list = ListBox::builder()
+            .selection_mode(SelectionMode::None)
             .build();
-        cpu_card.add_css_class("metric-card");
-        let cpu_title = Label::builder().label("CPU Load").xalign(0.0).build();
-        cpu_title.add_css_class("heading");
-        let cpu_val = Label::builder().label("--%").xalign(0.0).build();
-        cpu_val.add_css_class("title-1");
-        let cpu_sub = Label::builder().label("Processor").xalign(0.0).build();
-        cpu_sub.add_css_class("dim-label");
-        cpu_card.append(&cpu_title);
-        cpu_card.append(&cpu_val);
-        cpu_card.append(&cpu_sub);
-        tiles_box.append(&cpu_card);
+        col1_list.add_css_class("boxed-list");
+        col1_list.append(&Self::create_info_row(
+            "Distribution",
+            &initial_summary.distro,
+            "computer-symbolic",
+        ));
+        col1_list.append(&Self::create_info_row(
+            "Kernel",
+            &initial_summary.kernel,
+            "emblem-system-symbolic",
+        ));
+        col1_list.append(&Self::create_info_row(
+            "Architecture",
+            &initial_summary.arch,
+            "cpu-symbolic",
+        ));
+        col1_list.append(&Self::create_info_row(
+            "Desktop",
+            &initial_summary.desktop,
+            "preferences-desktop-display-symbolic",
+        ));
+        two_col_box.append(&col1_list);
 
-        // RAM Tile
-        let mem_card = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .hexpand(true)
+        let col2_list = ListBox::builder()
+            .selection_mode(SelectionMode::None)
             .build();
-        mem_card.add_css_class("metric-card");
-        let mem_title = Label::builder().label("Memory").xalign(0.0).build();
-        mem_title.add_css_class("heading");
-        let mem_val = Label::builder().label("--%").xalign(0.0).build();
-        mem_val.add_css_class("title-1");
-        let mem_sub = Label::builder().label("Active RAM").xalign(0.0).build();
-        mem_sub.add_css_class("dim-label");
-        mem_card.append(&mem_title);
-        mem_card.append(&mem_val);
-        mem_card.append(&mem_sub);
-        tiles_box.append(&mem_card);
+        col2_list.add_css_class("boxed-list");
+        let cpu_display = if initial_summary.cpu_model.chars().count() <= 32 {
+            initial_summary.cpu_model.clone()
+        } else {
+            let truncated: String = initial_summary.cpu_model.chars().take(32).collect();
+            format!("{}...", truncated)
+        };
+        col2_list.append(&Self::create_info_row(
+            "Processor",
+            &cpu_display,
+            "cpu-symbolic",
+        ));
+        let uptime_row = Self::create_info_row(
+            "System Uptime",
+            &initial_summary.uptime_str,
+            "alarm-symbolic",
+        );
+        col2_list.append(&uptime_row);
+        col2_list.append(&Self::create_info_row(
+            "Session",
+            &initial_summary.desktop,
+            "dialog-information-symbolic",
+        ));
+        two_col_box.append(&col2_list);
 
-        // Disk Tile
-        let disk_card = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .hexpand(true)
+        sys_group.add(&two_col_box);
+        root_box.append(&sys_group);
+
+        let clamp = Clamp::builder()
+            .maximum_size(960)
+            .child(&root_box)
             .build();
-        disk_card.add_css_class("metric-card");
-        let disk_title = Label::builder().label("Root Storage").xalign(0.0).build();
-        disk_title.add_css_class("heading");
-        let disk_val = Label::builder().label("--%").xalign(0.0).build();
-        disk_val.add_css_class("title-1");
-        let disk_sub = Label::builder().label("Filesystem").xalign(0.0).build();
-        disk_sub.add_css_class("dim-label");
-        disk_card.append(&disk_title);
-        disk_card.append(&disk_val);
-        disk_card.append(&disk_sub);
-        tiles_box.append(&disk_card);
+        scroller.set_child(Some(&clamp));
 
-        // Network Tile
-        let net_card = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .hexpand(true)
-            .build();
-        net_card.add_css_class("metric-card");
-        let net_title = Label::builder().label("Network I/O").xalign(0.0).build();
-        net_title.add_css_class("heading");
-        let net_val = Label::builder().label("0 KB/s").xalign(0.0).build();
-        net_val.add_css_class("title-1");
-        let net_sub = Label::builder().label("Down: 0 | Up: 0").xalign(0.0).build();
-        net_sub.add_css_class("dim-label");
-        net_card.append(&net_title);
-        net_card.append(&net_val);
-        net_card.append(&net_sub);
-        tiles_box.append(&net_card);
-
-        // GPU Tile
-        let gpu_card = GtkBox::builder()
-            .orientation(Orientation::Vertical)
-            .spacing(6)
-            .hexpand(true)
-            .build();
-        gpu_card.add_css_class("metric-card");
-        let gpu_title = Label::builder().label("GPU Load").xalign(0.0).build();
-        gpu_title.add_css_class("heading");
-        let gpu_val = Label::builder().label("N/A").xalign(0.0).build();
-        gpu_val.add_css_class("title-1");
-        let gpu_sub = Label::builder().label("Graphics").xalign(0.0).build();
-        gpu_sub.add_css_class("dim-label");
-        gpu_card.append(&gpu_title);
-        gpu_card.append(&gpu_val);
-        gpu_card.append(&gpu_sub);
-        tiles_box.append(&gpu_card);
-
-        root_box.append(&tiles_box);
-        scroller.set_child(Some(&root_box));
-
-        // Connect Boost Button (Debounced + Asynchronous)
+        // Connect Boost Button (Debounced + Asynchronous + Toast Feedback)
         let is_boosting = Arc::new(AtomicBool::new(false));
         {
             let is_boosting = is_boosting.clone();
-            let boost_btn = boost_btn.clone();
             let ram_label = ram_label.clone();
             let ram_bar = ram_bar.clone();
             let clutter_label = clutter_label.clone();
+            let toast_overlay = toast_overlay.clone();
 
             boost_btn.connect_clicked(move |btn| {
                 if !SmartBoostEngine::check_debounce(1000) {
@@ -281,6 +466,7 @@ impl DashboardPage {
                 let ram_label = ram_label.clone();
                 let ram_bar = ram_bar.clone();
                 let clutter_label = clutter_label.clone();
+                let toast_overlay = toast_overlay.clone();
 
                 glib::timeout_add_local(Duration::from_millis(100), move || {
                     if let Ok(res) = rx.try_recv() {
@@ -288,11 +474,23 @@ impl DashboardPage {
                         btn.set_label("🚀 Boost");
                         is_boosting.store(false, Ordering::SeqCst);
 
-                        if !res.already_running {
+                        if res.already_running {
+                            if let Some(ref overlay) = toast_overlay {
+                                overlay.add_toast(Toast::new("Smart Boost is already running."));
+                            }
+                        } else {
                             let status = SmartBoostEngine::get_boost_status();
-                            ram_label.set_label(&format!("RAM Usage: {:.0}%", status.ram_percent));
+                            ram_label.set_label(&format!("RAM Usage: {:.1}%", status.ram_percent));
                             ram_bar.set_fraction((status.ram_percent / 100.0).clamp(0.0, 1.0));
                             clutter_label.set_label(&format!("Temporary Files: {}", status.temp_size_str));
+
+                            if let Some(ref overlay) = toast_overlay {
+                                let msg = format!(
+                                    "Boost Complete! Freed {:.1} MB RAM and {:.1} MB temporary files.",
+                                    res.ram_reclaimed_mb, res.disk_freed_mb
+                                );
+                                overlay.add_toast(Toast::new(&msg));
+                            }
                         }
 
                         glib::ControlFlow::Break
@@ -305,32 +503,17 @@ impl DashboardPage {
 
         // Non-Blocking Background Telemetry Refresh Loop (Every 3 seconds)
         {
-            let ram_label = ram_label.clone();
-            let ram_bar = ram_bar.clone();
-            let clutter_label = clutter_label.clone();
-            let cpu_val = cpu_val.clone();
-            let cpu_sub = cpu_sub.clone();
-            let mem_val = mem_val.clone();
-            let mem_sub = mem_sub.clone();
-            let disk_val = disk_val.clone();
-            let disk_sub = disk_sub.clone();
-            let net_val = net_val.clone();
-            let net_sub = net_sub.clone();
-            let gpu_val = gpu_val.clone();
-            let gpu_sub = gpu_sub.clone();
-            let host_sub = host_sub.clone();
-
             let (tx, rx) = mpsc::channel::<TelemetrySnapshot>();
 
-            // Background worker thread for telemetry
             std::thread::spawn(move || {
                 loop {
                     let summary = SystemMonitor::get_system_summary();
                     let cpu = SystemMonitor::get_cpu_info();
                     let mem = SystemMonitor::get_memory_info();
                     let disks = SystemMonitor::get_disks_info();
+                    let battery = SystemMonitor::get_battery_info();
                     let net = SystemMonitor::get_network_rate();
-                    let gpu = SystemMonitor::get_gpu_info();
+                    let gpus = SystemMonitor::get_gpus_info();
                     let boost_status = SmartBoostEngine::get_boost_status();
 
                     let snapshot = TelemetrySnapshot {
@@ -338,8 +521,9 @@ impl DashboardPage {
                         cpu,
                         mem,
                         disks,
+                        battery,
                         net,
-                        gpu,
+                        gpus,
                         boost_status,
                     };
 
@@ -350,41 +534,112 @@ impl DashboardPage {
                 }
             });
 
-            glib::timeout_add_local(Duration::from_millis(500), move || {
+            glib::timeout_add_local(Duration::from_millis(300), move || {
                 while let Ok(snap) = rx.try_recv() {
-                    ram_label.set_label(&format!("RAM Usage: {:.0}%", snap.boost_status.ram_percent));
+                    // 1. Update Smart Boost Banner
+                    ram_label.set_label(&format!("RAM Usage: {:.1}%", snap.boost_status.ram_percent));
                     ram_bar.set_fraction((snap.boost_status.ram_percent / 100.0).clamp(0.0, 1.0));
                     clutter_label.set_label(&format!("Temporary Files: {}", snap.boost_status.temp_size_str));
 
-                    let temp_str = if let Some(t) = snap.cpu.temp_c {
-                        format!(" | {:.0}°C", t)
-                    } else {
-                        String::new()
-                    };
-                    cpu_val.set_label(&format!("{:.1}%", snap.cpu.usage_percent));
-                    cpu_sub.set_label(&format!("{} ({} cores{})", snap.cpu.brand, snap.cpu.core_count, temp_str));
+                    // 2. CPU Tile
+                    tile_cpu.set_data(
+                        &format!("{:.1}%", snap.cpu.usage_percent),
+                        (snap.cpu.usage_percent as f64) / 100.0,
+                        "Total Load",
+                    );
 
-                    mem_val.set_label(&format!("{:.1}%", snap.mem.percent));
-                    mem_sub.set_label(&format!("{:.0} MB / {:.0} MB", snap.mem.used_mb, snap.mem.total_mb));
+                    // 3. Memory Tile
+                    tile_mem.set_data(
+                        &format!("{:.1}%", snap.mem.percent),
+                        snap.mem.percent / 100.0,
+                        &format!("{:.0} / {:.0} MB", snap.mem.used_mb, snap.mem.total_mb),
+                    );
 
-                    if let Some(root) = snap.disks.iter().find(|d| d.mount_point == "/") {
-                        disk_val.set_label(&format!("{:.0}%", root.percent));
-                        disk_sub.set_label(&format!("{:.1} GB Free / {:.1} GB", root.available_gb, root.total_gb));
+                    // 4. Root Disk Tile
+                    if let Some(root) = snap
+                        .disks
+                        .iter()
+                        .find(|d| d.mount_point == "/")
+                        .or_else(|| snap.disks.first())
+                    {
+                        tile_disk.set_data(
+                            &format!("{:.1}%", root.percent),
+                            root.percent / 100.0,
+                            &format!("{:.1} GB Free", root.available_gb),
+                        );
                     }
 
-                    net_val.set_label(&format!("{:.1} KB/s", snap.net.rx_kbps + snap.net.tx_kbps));
-                    net_sub.set_label(&format!("↓ {:.1} KB/s | ↑ {:.1} KB/s", snap.net.rx_kbps, snap.net.tx_kbps));
+                    // 5. Temperature Tile
+                    let cpu_temp = snap.cpu.temp_c.unwrap_or(0.0) as f64;
+                    let temp_fraction = if cpu_temp > 0.0 { cpu_temp / 100.0 } else { 0.0 };
+                    tile_temp.set_data(
+                        &format!("{:.1}°C", cpu_temp),
+                        temp_fraction,
+                        "CPU Package",
+                    );
 
-                    if let Some(gpu) = snap.gpu {
-                        gpu_val.set_label(&format!("{:.0}%", gpu.load_percent));
-                        let g_temp = gpu.temp_c.map(|t| format!(" | {:.0}°C", t)).unwrap_or_default();
-                        gpu_sub.set_label(&format!("{}{}", gpu.name, g_temp));
+                    // 6. Battery Tile
+                    if snap.battery.present && snap.battery.design_capacity_wh > 0.0 {
+                        let health_pct = snap.battery.capacity_percent;
+                        let real_wh = snap.battery.real_capacity_wh;
+                        let design_wh = snap.battery.design_capacity_wh;
+                        let frac = if design_wh > 0.0 {
+                            real_wh / design_wh
+                        } else {
+                            0.0
+                        };
+                        tile_battery.set_data(
+                            &format!("{:.1}%", health_pct),
+                            frac,
+                            &format!("{:.1} / {:.1} Wh", real_wh, design_wh),
+                        );
+                        let status_text = if !snap.battery.status.is_empty()
+                            && snap.battery.status != "Unknown"
+                        {
+                            format!(" · {}", snap.battery.status)
+                        } else {
+                            String::new()
+                        };
+                        tile_battery.set_tooltip_text(Some(&format!(
+                            "Battery Health: {:.1}%\nReal Capacity: {:.2} Wh\nDesign Capacity: {:.2} Wh{}",
+                            health_pct, real_wh, design_wh, status_text
+                        )));
                     } else {
-                        gpu_val.set_label("N/A");
-                        gpu_sub.set_label("Integrated/Unknown");
+                        tile_battery.set_data("N/A", 0.0, "No Battery");
+                        tile_battery.set_tooltip_text(Some("No battery detected on this system"));
                     }
 
-                    host_sub.set_label(&format!("Kernel: {} | Desktop: {} | Uptime: {}", snap.summary.kernel, snap.summary.desktop, snap.summary.uptime_str));
+                    // 7. Network Telemetry Tiles
+                    let dl_frac = (snap.net.rx_bytes_sec / (20.0 * 1024.0 * 1024.0)).min(1.0);
+                    let ul_frac = (snap.net.tx_bytes_sec / (10.0 * 1024.0 * 1024.0)).min(1.0);
+                    tile_net_dl.set_data(&snap.net.rx_str, dl_frac, "Incoming Rate");
+                    tile_net_ul.set_data(&snap.net.tx_str, ul_frac, "Outgoing Rate");
+
+                    // 8. GPU 0 & GPU 1 Tiles
+                    if let Some(gpu0) = snap.gpus.first() {
+                        let name0: String = gpu0.name.chars().take(16).collect();
+                        tile_gpu0.set_data(
+                            &format!("{:.0}%", gpu0.load_percent),
+                            (gpu0.load_percent as f64) / 100.0,
+                            &name0,
+                        );
+                    } else {
+                        tile_gpu0.set_data("N/A", 0.0, "No GPU Detected");
+                    }
+
+                    if let Some(gpu1) = snap.gpus.get(1) {
+                        let name1: String = gpu1.name.chars().take(16).collect();
+                        tile_gpu1.set_data(
+                            &format!("{:.0}%", gpu1.load_percent),
+                            (gpu1.load_percent as f64) / 100.0,
+                            &name1,
+                        );
+                    } else {
+                        tile_gpu1.set_data("N/A", 0.0, "Integrated / None");
+                    }
+
+                    // 9. Update System Uptime Row
+                    uptime_row.set_subtitle(&snap.summary.uptime_str);
                 }
                 glib::ControlFlow::Continue
             });

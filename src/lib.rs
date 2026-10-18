@@ -5,7 +5,7 @@ pub mod ai;
 pub mod ui;
 
 pub use backend::{
-    AntivirusEngine, AutostartManager, BackgroundDaemon, BtrfsManager, CleanCategory,
+    AntivirusEngine, AutostartManager, BackgroundDaemon, BatteryInfo, BtrfsManager, CleanCategory,
     CleanerEngine, DiagnosticsCollector, DistroDetector, DistroFamily, GrubManager,
     HostBridge, NotificationManager, PackageManager, ProcessManager, ServiceManager,
     SmartBoostEngine, SystemMonitor, ThreatFinding,

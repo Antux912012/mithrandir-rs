@@ -7,7 +7,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
 
 echo "==> Building Release Binary with GNOME Sdk..."
-flatpak run --user --devel --filesystem=home --command=sh org.gnome.Sdk//50 -c \
+flatpak run --user --devel --share=network --filesystem=home --command=sh org.gnome.Sdk//50 -c \
   "export PATH=\$HOME/.cargo/bin:\$PATH && cargo build --release --features gui"
 
 PKG_DIR="${ROOT_DIR}/target/pkg-deb"

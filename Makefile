@@ -3,12 +3,12 @@
 all: build deb flatpak
 
 build:
-	flatpak run --user --devel --filesystem=home --command=sh org.gnome.Sdk//50 -c \
+	flatpak run --user --devel --share=network --filesystem=home --command=sh org.gnome.Sdk//50 -c \
 	  "export PATH=\$$HOME/.cargo/bin:\$$PATH && cargo build --release --features gui"
 
 check:
 	cargo check
-	flatpak run --user --devel --filesystem=home --command=sh org.gnome.Sdk//50 -c \
+	flatpak run --user --devel --share=network --filesystem=home --command=sh org.gnome.Sdk//50 -c \
 	  "export PATH=\$$HOME/.cargo/bin:\$$PATH && cargo check --features gui"
 
 test:

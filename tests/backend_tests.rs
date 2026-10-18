@@ -47,6 +47,30 @@ fn test_system_summary() {
     assert!(!summary.hostname.is_empty());
     assert!(!summary.kernel.is_empty());
     assert!(!summary.distro.is_empty());
+    assert!(!summary.arch.is_empty());
+    assert!(!summary.cpu_model.is_empty());
+}
+
+#[test]
+fn test_sensor_telemetry_suite() {
+    let net = SystemMonitor::get_network_rate();
+    assert!(!net.rx_str.is_empty());
+    assert!(!net.tx_str.is_empty());
+    assert!(net.rx_bytes_sec >= 0.0);
+    assert!(net.tx_bytes_sec >= 0.0);
+
+    let bat = SystemMonitor::get_battery_info();
+    assert!(!bat.status.is_empty());
+    if bat.present {
+        assert!(bat.design_capacity_wh > 0.0);
+        assert!(bat.capacity_percent >= 0.0);
+    }
+
+    let gpus = SystemMonitor::get_gpus_info();
+    for gpu in &gpus {
+        assert!(!gpu.name.is_empty());
+        assert!(gpu.load_percent >= 0.0);
+    }
 }
 
 #[test]

@@ -13,7 +13,7 @@ pub mod host_bridge;
 pub mod distro;
 pub mod diagnostics;
 
-pub use monitor::SystemMonitor;
+pub use monitor::{BatteryInfo, SystemMonitor};
 pub use cleaner::{CleanerEngine, CleanCategory};
 pub use smart_boost::SmartBoostEngine;
 pub use processes::{ProcessManager, ProcessItem};

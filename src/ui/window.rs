@@ -4,7 +4,7 @@ use gtk4::{
 };
 use libadwaita as adw;
 use adw::prelude::*;
-use adw::{AboutDialog, ApplicationWindow, HeaderBar, ToolbarView, WindowTitle};
+use adw::{AboutDialog, ApplicationWindow, HeaderBar, ToastOverlay, ToolbarView, WindowTitle};
 use std::rc::Rc;
 use crate::ui::antivirus::AntivirusPage;
 use crate::ui::autostart::AutostartPage;
@@ -32,6 +32,7 @@ impl MithrandirWindow {
             .default_height(740)
             .build();
 
+        let toast_overlay = ToastOverlay::new();
         let toolbar_view = ToolbarView::new();
         let header_bar = HeaderBar::new();
 
@@ -81,8 +82,8 @@ impl MithrandirWindow {
             .vexpand(true)
             .build();
 
-        // Instantiate all 9 subpages
-        let page_dashboard = DashboardPage::build();
+        // Instantiate all subpages
+        let page_dashboard = DashboardPage::build(Some(toast_overlay.clone()));
         let page_cleaner = CleanerPage::build();
         let page_processes = ProcessesPage::build();
         let page_autostart = AutostartPage::build();
@@ -176,7 +177,8 @@ impl MithrandirWindow {
         main_box.append(&stack);
 
         toolbar_view.set_content(Some(&main_box));
-        window.set_content(Some(&toolbar_view));
+        toast_overlay.set_child(Some(&toolbar_view));
+        window.set_content(Some(&toast_overlay));
 
         // Connect hamburger button to toggle sidebar
         let sidebar_clone = sidebar_box.clone();
