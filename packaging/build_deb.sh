@@ -26,6 +26,6 @@ install -m 644 "${ROOT_DIR}/data/io.github.antonio.MithrandirRS.gschema.xml" "${
 cp -r "${ROOT_DIR}/data/icons/hicolor/"* "${PKG_DIR}/usr/share/icons/hicolor/"
 
 echo "==> Packaging .deb..."
-dpkg-deb --build --root-owner-group "${PKG_DIR}" "${ROOT_DIR}/mithrandir-rs_0.4.0_amd64.deb"
+dpkg-deb --build --root-owner-group "${PKG_DIR}" "${ROOT_DIR}/mithrandir-rs_0.4.1_amd64.deb"
 
-echo "==> Debian package generated at ${ROOT_DIR}/mithrandir-rs_0.4.0_amd64.deb"
+echo "==> Debian package generated at ${ROOT_DIR}/mithrandir-rs_0.4.1_amd64.deb"

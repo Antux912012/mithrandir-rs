@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="#-installation"><img src="https://img.shields.io/badge/version-0.4.0--preview-orange.svg" alt="Version" /></a>
+  <a href="#-installation"><img src="https://img.shields.io/badge/version-0.4.1--preview-orange.svg" alt="Version" /></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://gtk.org/"><img src="https://img.shields.io/badge/GUI-GTK%204%20%7C%20Libadwaita-brightgreen.svg" alt="GTK4 & Libadwaita" /></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.80%2B-informational.svg" alt="Rust 1.80+" /></a>
@@ -54,12 +54,12 @@ Pre-built standalone packages are ready in the repository root:
 
 ### Debian / Ubuntu (`.deb`)
 ```bash
-sudo dpkg -i mithrandir-rs_0.4.0_amd64.deb
+sudo dpkg -i mithrandir-rs_0.4.1_amd64.deb
 ```
 
 ### Flatpak Bundle (`.flatpak`)
 ```bash
-flatpak install --user mithrandir-rs_0.4.0.flatpak
+flatpak install --user mithrandir-rs_0.4.1.flatpak
 ```
 Run via Flatpak:
 ```bash

@@ -112,6 +112,60 @@ fn test_ai_url_normalization() {
     assert_eq!(AIClient::normalize_base_url("http://127.0.0.1:18080/v1/chat/completions"), "http://127.0.0.1:18080/v1");
     assert_eq!(AIClient::normalize_base_url("http://localhost:11434"), "http://localhost:11434/v1");
     assert_eq!(AIClient::normalize_base_url("https://integrate.api.nvidia.com"), "https://integrate.api.nvidia.com/v1");
+    assert_eq!(AIClient::normalize_base_url("https://generativelanguage.googleapis.com"), "https://generativelanguage.googleapis.com/v1beta");
+    assert_eq!(
+        AIClient::normalize_base_url("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"),
+        "https://generativelanguage.googleapis.com/v1beta"
+    );
+    assert_eq!(AIClient::normalize_base_url("https://api.anthropic.com"), "https://api.anthropic.com/v1");
+}
+
+#[test]
+fn test_gemini_payload_and_response() {
+    let client = AIClient::new("https://generativelanguage.googleapis.com/v1beta", "AIzaTestKey", "");
+    assert!(client.is_gemini());
+    assert!(client.is_gemini_native());
+    assert_eq!(client.resolve_model(None), "gemini-2.5-flash");
+    assert_eq!(client.resolve_model(Some("models/gemini-2.5-pro")), "gemini-2.5-pro");
+
+    let msgs = vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: "You are Mithrandir Linux assistant.".to_string(),
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: "Check disk usage".to_string(),
+        },
+    ];
+    let payload = AIClient::build_gemini_payload(&msgs, 0.3);
+    assert_eq!(
+        payload["systemInstruction"]["parts"][0]["text"].as_str(),
+        Some("You are Mithrandir Linux assistant.")
+    );
+    assert_eq!(
+        payload["contents"][0]["parts"][0]["text"].as_str(),
+        Some("Check disk usage")
+    );
+
+    let mock_resp = serde_json::json!({
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        { "text": "Disk space looks fine.\nPROPOSED_COMMAND: df -h /" }
+                    ],
+                    "role": "model"
+                }
+            }
+        ]
+    });
+    let parsed = AIClient::parse_gemini_response(&mock_resp).unwrap();
+    assert!(parsed.contains("PROPOSED_COMMAND: df -h /"));
+    assert_eq!(
+        AIClient::extract_proposed_command(&parsed),
+        Some("df -h /".to_string())
+    );
 }
 
 #[test]

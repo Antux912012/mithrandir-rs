@@ -95,8 +95,8 @@ impl PreferencesDialog {
 
         // 4. AI Diagnostics Defaults
         let ai_group = PreferencesGroup::builder()
-            .title("AI Diagnostics & Local Inference")
-            .description("Default AI provider and zero-download offline assistant")
+            .title("AI Diagnostics & Cloud / Local Inference")
+            .description("Supports Google Gemini (Google AI Studio), Anthropic Claude, OpenAI, NVIDIA NIM, Ollama, LM Studio, and In-App llama.cpp")
             .build();
 
         let default_provider_row = ActionRow::builder()
@@ -104,6 +104,12 @@ impl PreferencesDialog {
             .subtitle("Built-in Linux Mini-Assistant (Offline, Zero-Download)")
             .build();
         ai_group.add(&default_provider_row);
+
+        let gemini_provider_row = ActionRow::builder()
+            .title("Google Gemini (Google AI Studio)")
+            .subtitle("gemini-2.5-flash on https://generativelanguage.googleapis.com/v1beta")
+            .build();
+        ai_group.add(&gemini_provider_row);
 
         let inapp_model_row = ActionRow::builder()
             .title("Recommended In-App Model")

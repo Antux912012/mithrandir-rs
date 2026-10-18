@@ -197,6 +197,8 @@ impl AIPage {
             "Built-in Linux Mini-Assistant (Offline, Zero-Download)",
             "Ollama (Local Offline — localhost:11434)",
             "LM Studio (Local Offline — localhost:1234)",
+            "Google Gemini (Google AI Studio — Cloud API)",
+            "Anthropic Claude (Cloud API)",
             "NVIDIA NIM (Cloud API)",
             "OpenAI / Custom OpenAI-Compatible Endpoint",
         ]);
@@ -211,7 +213,7 @@ impl AIPage {
 
         let url_row = ActionRow::builder()
             .title("Endpoint URL")
-            .subtitle("Base URL for OpenAI-compatible chat API")
+            .subtitle("Base URL for Gemini AI Studio, Claude, OpenAI, or Local LLM API")
             .build();
         let url_entry = Entry::builder()
             .text("builtin://linux-mini")
@@ -222,7 +224,7 @@ impl AIPage {
         provider_group.add(&url_row);
 
         let key_row = PasswordEntryRow::builder()
-            .title("API Key (Optional for local runtimes)")
+            .title("API Key (Google AI Studio / Claude / OpenAI / NIM — Optional for local)")
             .build();
         provider_group.add(&key_row);
 
@@ -401,10 +403,18 @@ impl AIPage {
                         model_entry.set_text("local-model");
                     }
                     4 => {
+                        url_entry.set_text("https://generativelanguage.googleapis.com/v1beta");
+                        model_entry.set_text("gemini-2.5-flash");
+                    }
+                    5 => {
+                        url_entry.set_text("https://api.anthropic.com/v1");
+                        model_entry.set_text("claude-3-5-sonnet-latest");
+                    }
+                    6 => {
                         url_entry.set_text("https://integrate.api.nvidia.com/v1");
                         model_entry.set_text("meta/llama-3.1-70b-instruct");
                     }
-                    5 => {
+                    7 => {
                         url_entry.set_text("https://api.openai.com/v1");
                         model_entry.set_text("gpt-4o-mini");
                     }
