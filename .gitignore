@@ -3,5 +3,3 @@
 build-dir-rs/
 repo-rs/
 pkg-deb/usr/
-*.deb
-*.flatpak

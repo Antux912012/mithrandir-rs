@@ -34,7 +34,7 @@ Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mi
 
 | Feature / Area | Original [Mithrandir](https://github.com/Antux912012/mithrandir) | Mithrandir-RS (Rust) | Status |
 | :--- | :--- | :--- | :--- |
-| **System Dashboard & Telemetry** | Full | Full (CPU, GPU, Network, Temp, Architecture) | ✅ Parity |
+| **System Dashboard & Telemetry** | Full | Full (CPU, Dual GPU, Network Rx/Tx, Thermal Zones, Battery Wh/Health, Architecture) | ✅ Parity |
 | **Smart Boost (RAM & Cache trim)**| Full | Full (Debounced, Re-entrancy Guard, Cooldown) | ✅ Parity |
 | **Multi-Threaded Cache Cleaner** | Full | Full (Thumbnails, Browser, Stremio, Dev, Trash, Journal) | ✅ Parity |
 | **Process & Task Explorer** | Full (Stacer style) | Live accurate CPU% & RAM, Search, Sorting | ✅ Parity |
