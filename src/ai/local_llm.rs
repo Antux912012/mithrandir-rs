@@ -305,7 +305,7 @@ impl LocalLLMManager {
             std::thread::sleep(Duration::from_millis(500));
             if let Ok(meta) = fs::metadata(&part) {
                 let mb = meta.len() as f64 / (1024.0 * 1024.0);
-                if start_time.elapsed().as_secs() % 3 == 0 {
+                if start_time.elapsed().as_secs().is_multiple_of(3) {
                     on_line(format!("[Mithrandir-RS] Downloading {}: {:.1} MB retrieved...", model_id, mb));
                 }
             }

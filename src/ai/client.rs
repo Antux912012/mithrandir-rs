@@ -69,10 +69,9 @@ impl AIClient {
             && !url.contains("/v1/")
             && !url.contains("/v1beta")
             && (url.starts_with("http://") || url.starts_with("https://"))
+            && (url.contains("api.openai.com") || url.contains("nvidia.com") || url.contains("anthropic.com"))
         {
-            if url.contains("api.openai.com") || url.contains("nvidia.com") || url.contains("anthropic.com") {
-                url = format!("{}/v1", url);
-            }
+            url = format!("{}/v1", url);
         }
 
         url
@@ -253,14 +252,12 @@ impl AIClient {
             }
         }
 
-        if self.is_inapp_llamacpp() {
-            if !LocalLLMManager::is_llamacpp_server_running() {
-                let st = LocalLLMManager::check_llamacpp_status();
-                if st.engine_installed && !st.models.is_empty() {
-                    let _ = LocalLLMManager::start_llamacpp_server(None);
-                } else {
-                    return Err("In-app llama.cpp engine is not running yet. Click 'Install Qwen + llama.cpp' first.".to_string());
-                }
+        if self.is_inapp_llamacpp() && !LocalLLMManager::is_llamacpp_server_running() {
+            let st = LocalLLMManager::check_llamacpp_status();
+            if st.engine_installed && !st.models.is_empty() {
+                let _ = LocalLLMManager::start_llamacpp_server(None);
+            } else {
+                return Err("In-app llama.cpp engine is not running yet. Click 'Install Qwen + llama.cpp' first.".to_string());
             }
         }
 

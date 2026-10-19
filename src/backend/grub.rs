@@ -22,15 +22,15 @@ impl GrubManager {
         if let Ok(content) = fs::read_to_string("/etc/default/grub") {
             for line in content.lines() {
                 let l = line.trim();
-                if l.starts_with("GRUB_TIMEOUT=") {
-                    let val = l[13..].trim_matches('"');
-                    if let Ok(t) = val.parse::<i32>() {
+                if let Some(val) = l.strip_prefix("GRUB_TIMEOUT=") {
+                    let v = val.trim_matches('"');
+                    if let Ok(t) = v.parse::<i32>() {
                         config.timeout = t;
                     }
-                } else if l.starts_with("GRUB_DEFAULT=") {
-                    config.default_entry = l[13..].trim_matches('"').to_string();
-                } else if l.starts_with("GRUB_CMDLINE_LINUX_DEFAULT=") {
-                    config.cmdline = l[27..].trim_matches('"').to_string();
+                } else if let Some(val) = l.strip_prefix("GRUB_DEFAULT=") {
+                    config.default_entry = val.trim_matches('"').to_string();
+                } else if let Some(val) = l.strip_prefix("GRUB_CMDLINE_LINUX_DEFAULT=") {
+                    config.cmdline = val.trim_matches('"').to_string();
                 }
             }
         }
