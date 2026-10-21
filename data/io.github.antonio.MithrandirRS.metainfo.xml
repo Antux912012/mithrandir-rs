@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.antonio.MithrandirRS</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Mithrandir-RS</name>
+  <summary>High-performance Linux cleaner, telemetry and AI diagnostics in Rust</summary>
+  <description>
+    <p>
+      Mithrandir-RS is a native, blazing-fast Linux system maintenance suite and cleaner written in Rust with GTK4 and Libadwaita.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>High-throughput multi-threaded system cleaning (caches, thumbnails, logs, packages)</li>
+      <li>Zero-sleep real-time CPU delta, memory, GPU and battery hardware telemetry</li>
+      <li>Quarantine vault and ClamAV integration</li>
+      <li>In-app Qwen 2.5 and llama.cpp local AI model management</li>
+      <li>Dual AI Diagnostics supporting Google Gemini, Claude, and OpenAI-compatible providers</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/Antux912012/mithrandir-rs</url>
+  <url type="bugtracker">https://github.com/Antux912012/mithrandir-rs/issues</url>
+  <developer id="io.github.antonio">
+    <name>Antonio</name>
+  </developer>
+  <launchable type="desktop-id">io.github.antonio.MithrandirRS.desktop</launchable>
+  <branding>
+    <color type="primary" scheme_preference="light">#3584e4</color>
+    <color type="primary" scheme_preference="dark">#1c71d8</color>
+  </branding>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="0.4.1" date="2026-10-18">
+      <description>
+        <p>Release v0.4.1 with native Google Gemini AI Studio and Anthropic Claude support.</p>
+      </description>
+    </release>
+    <release version="0.4.0" date="2026-10-16">
+      <description>
+        <p>Initial stable Rust release with GTK4/Libadwaita UI, async telemetry, and local AI manager.</p>
+      </description>
+    </release>
+  </releases>
+</component>
