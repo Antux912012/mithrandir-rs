@@ -4,18 +4,21 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Mithrandir-RS</name>
-  <summary>High-performance Linux cleaner, telemetry and AI diagnostics in Rust</summary>
+  <summary>Blazing-fast Linux system cleaner, real-time hardware telemetry, and AI diagnostics in Rust</summary>
   <description>
     <p>
-      Mithrandir-RS is a native, blazing-fast Linux system maintenance suite and cleaner written in Rust with GTK4 and Libadwaita.
+      Mithrandir-RS is a high-performance system maintenance suite, cleaner, and diagnostic toolkit rewritten entirely in Rust with GTK4 and Libadwaita. It delivers instantaneous cleanup scans, deep cache pruning, and granular control over startup services and system processes without background resource overhead.
     </p>
-    <p>Features include:</p>
+    <p>
+      Designed with a focus on safety and transparency, Mithrandir-RS protects critical operating system paths, features a quarantined ClamAV vault, and runs diagnostic telemetry off the main UI thread for completely stutter-free operation.
+    </p>
     <ul>
-      <li>High-throughput multi-threaded system cleaning (caches, thumbnails, logs, packages)</li>
-      <li>Zero-sleep real-time CPU delta, memory, GPU and battery hardware telemetry</li>
-      <li>Quarantine vault and ClamAV integration</li>
-      <li>In-app Qwen 2.5 and llama.cpp local AI model management</li>
-      <li>Dual AI Diagnostics supporting Google Gemini, Claude, and OpenAI-compatible providers</li>
+      <li>High-Throughput Cleaner: Multi-threaded cleanup for package caches, thumbnails, application logs, and Flatpak runtimes</li>
+      <li>Zero-Sleep Real-Time Telemetry: Instant CPU delta calculation, dual GPU metrics, and battery health reporting</li>
+      <li>Debounced Smart Boost: Safe one-click memory optimization and temporary file reclamation</li>
+      <li>Quarantine Vault: Integrated ClamAV scanning with secure isolation for flagged files</li>
+      <li>Integrated Mini-LLM Manager: One-click download and execution of local GGUF models via llama.cpp or Ollama</li>
+      <li>Dual AI Diagnostics: Real-time diagnostic assistance powered by local offline models or Google Gemini and Claude APIs</li>
     </ul>
   </description>
   <url type="homepage">https://github.com/Antux912012/mithrandir-rs</url>
@@ -25,8 +28,8 @@
   </developer>
   <launchable type="desktop-id">io.github.antonio.MithrandirRS.desktop</launchable>
   <branding>
-    <color type="primary" scheme_preference="light">#3584e4</color>
-    <color type="primary" scheme_preference="dark">#1c71d8</color>
+    <color type="primary" scheme_preference="light">#2ec27e</color>
+    <color type="primary" scheme_preference="dark">#26a269</color>
   </branding>
   <content_rating type="oars-1.1" />
   <releases>
