@@ -12,6 +12,7 @@ pub mod indicator;
 pub mod host_bridge;
 pub mod distro;
 pub mod diagnostics;
+pub mod settings;
 
 pub use monitor::{BatteryInfo, SystemMonitor};
 pub use cleaner::{CleanerEngine, CleanCategory};
@@ -27,3 +28,4 @@ pub use indicator::{NotificationManager, BackgroundDaemon};
 pub use host_bridge::HostBridge;
 pub use distro::{DistroDetector, DistroFamily};
 pub use diagnostics::DiagnosticsCollector;
+pub use settings::AppSettings;

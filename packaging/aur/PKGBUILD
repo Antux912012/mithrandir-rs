@@ -1,6 +1,6 @@
 # Maintainer: Antonio <antonio@localhost>
 pkgname=mithrandir-rs
-pkgver=0.4.2
+pkgver=0.4.4
 pkgrel=1
 pkgdesc="Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Hardware Power Saver in Rust"
 arch=('x86_64')

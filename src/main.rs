@@ -56,8 +56,15 @@ fn main() {
         std::thread::spawn(|| {
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(60));
-                // Automatically triggers boost if RAM >= 85% with 15min cooldown
-                BackgroundDaemon::run_auto_boost_check(85.0, 1024.0, 15, true);
+                let cfg = mithrandir_rs::AppSettings::get();
+                if cfg.auto_boost_enabled {
+                    BackgroundDaemon::run_auto_boost_check(
+                        cfg.ram_threshold,
+                        1024.0,
+                        cfg.cooldown_minutes,
+                        cfg.desktop_notifications,
+                    );
+                }
             }
         });
 
@@ -175,7 +182,7 @@ fn main() {
 
     #[cfg(not(feature = "gui"))]
     {
-        println!("Mithrandir-RS v0.4.2 (GNU/Linux System Cleaner & Optimizer in Rust)");
+        println!("Mithrandir-RS v0.4.4 (GNU/Linux System Cleaner & Optimizer in Rust)");
         println!("Usage:");
         println!("  mithrandir-rs                 Launch Libadwaita GUI");
         println!("  mithrandir-rs --smart-boost   One-click RAM and cache boost");

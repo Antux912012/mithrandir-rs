@@ -80,24 +80,44 @@ impl GrubPage {
         btn_box.append(&save_btn);
         root_box.append(&btn_box);
 
+        let (sender, receiver) = async_channel::unbounded::<Result<(), String>>();
+        let s_btn = save_btn.clone();
+        glib::MainContext::default().spawn_local(async move {
+            while let Ok(result) = receiver.recv().await {
+                s_btn.set_sensitive(true);
+                s_btn.set_label("Save & Update GRUB");
+                match result {
+                    Ok(_) => {
+                        crate::backend::indicator::NotificationManager::send_notification(
+                            "⚙️ GRUB Updated",
+                            "Bootloader configuration was successfully updated.",
+                        );
+                    }
+                    Err(err) => {
+                        crate::backend::indicator::NotificationManager::send_notification(
+                            "⚠️ GRUB Update Failed",
+                            &format!("Could not update GRUB: {}", err),
+                        );
+                    }
+                }
+            }
+        });
+
         let spin_clone = timeout_spin.clone();
         let entry_clone = default_entry.clone();
         let save_clone = save_btn.clone();
+        let sender_clone = sender.clone();
 
         save_btn.connect_clicked(move |_| {
             save_clone.set_sensitive(false);
             save_clone.set_label("Updating GRUB...");
             let timeout = spin_clone.value() as i32;
             let def = entry_clone.text().to_string();
-            let s_btn = save_clone.clone();
+            let tx = sender_clone.clone();
 
             std::thread::spawn(move || {
-                let _ = GrubManager::save_and_update(timeout, &def);
-            });
-
-            glib::timeout_add_local_once(std::time::Duration::from_millis(2000), move || {
-                s_btn.set_sensitive(true);
-                s_btn.set_label("Save & Update GRUB");
+                let res = GrubManager::save_and_update(timeout, &def);
+                let _ = tx.send(res);
             });
         });
 

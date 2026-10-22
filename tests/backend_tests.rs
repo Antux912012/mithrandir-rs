@@ -429,3 +429,36 @@ fn test_nixos_immutable_graceful_handling() {
         assert!(msg.contains("NixOS detected"));
     }
 }
+
+#[test]
+fn test_app_settings_default_and_roundtrip() {
+    use mithrandir_rs::AppSettings;
+
+    let defaults = AppSettings::default();
+    assert!(defaults.keep_in_background);
+    assert!(defaults.show_tray_icon);
+    assert!(defaults.auto_boost_enabled);
+    assert_eq!(defaults.ram_threshold, 80.0);
+    assert_eq!(defaults.cooldown_minutes, 15);
+    assert!(defaults.desktop_notifications);
+
+    let serialized = serde_json::to_string(&defaults).expect("Serialization failed");
+    let deserialized: AppSettings = serde_json::from_str(&serialized).expect("Deserialization failed");
+    assert_eq!(deserialized.ram_threshold, 80.0);
+    assert_eq!(deserialized.cooldown_minutes, 15);
+}
+
+#[test]
+fn test_distro_family_conversion() {
+    use mithrandir_rs::os_info::LinuxDistro;
+    use mithrandir_rs::DistroFamily;
+
+    assert_eq!(DistroFamily::from(LinuxDistro::Debian), DistroFamily::Debian);
+    assert_eq!(DistroFamily::from(LinuxDistro::Ubuntu), DistroFamily::Debian);
+    assert_eq!(DistroFamily::from(LinuxDistro::Fedora), DistroFamily::Fedora);
+    assert_eq!(DistroFamily::from(LinuxDistro::Arch), DistroFamily::Arch);
+    assert_eq!(DistroFamily::from(LinuxDistro::CachyOS), DistroFamily::Arch);
+    assert_eq!(DistroFamily::from(LinuxDistro::OpenSuse), DistroFamily::Suse);
+    assert_eq!(DistroFamily::from(LinuxDistro::Alpine), DistroFamily::Alpine);
+    assert_eq!(DistroFamily::from(LinuxDistro::NixOS), DistroFamily::Unknown);
+}

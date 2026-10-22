@@ -1,6 +1,5 @@
-use std::fs;
-use std::path::Path;
 use serde::{Deserialize, Serialize};
+use crate::os_info::{detect_os, LinuxDistro};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DistroFamily {
@@ -10,6 +9,19 @@ pub enum DistroFamily {
     Suse,
     Alpine,
     Unknown,
+}
+
+impl From<LinuxDistro> for DistroFamily {
+    fn from(distro: LinuxDistro) -> Self {
+        match distro {
+            LinuxDistro::Debian | LinuxDistro::Ubuntu => DistroFamily::Debian,
+            LinuxDistro::Fedora => DistroFamily::Fedora,
+            LinuxDistro::Arch | LinuxDistro::CachyOS => DistroFamily::Arch,
+            LinuxDistro::OpenSuse => DistroFamily::Suse,
+            LinuxDistro::Alpine => DistroFamily::Alpine,
+            LinuxDistro::NixOS | LinuxDistro::Unknown => DistroFamily::Unknown,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,54 +34,13 @@ pub struct DistroInfo {
 pub struct DistroDetector;
 
 impl DistroDetector {
-    /// Detects current GNU/Linux distribution by inspecting os-release files.
+    /// Detects current GNU/Linux distribution by querying centralized os_info.
     pub fn detect() -> DistroInfo {
-        let candidates = [
-            "/etc/os-release",
-            "/usr/lib/os-release",
-            "/run/host/etc/os-release",
-            "/run/host/usr/lib/os-release",
-        ];
-
-        let mut id = "linux".to_string();
-        let mut pretty_name = "GNU/Linux".to_string();
-        let mut id_like = String::new();
-
-        for path in &candidates {
-            if let Ok(content) = fs::read_to_string(Path::new(path)) {
-                for line in content.lines() {
-                    let line = line.trim();
-                    if line.starts_with("ID=") {
-                        id = line.trim_start_matches("ID=").trim_matches('"').to_lowercase();
-                    } else if line.starts_with("PRETTY_NAME=") {
-                        pretty_name = line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string();
-                    } else if line.starts_with("ID_LIKE=") {
-                        id_like = line.trim_start_matches("ID_LIKE=").trim_matches('"').to_lowercase();
-                    }
-                }
-                break;
-            }
-        }
-
-        let combined = format!("{} {}", id, id_like);
-        let family = if combined.contains("ubuntu") || combined.contains("debian") || combined.contains("linuxmint") || combined.contains("pop") {
-            DistroFamily::Debian
-        } else if combined.contains("fedora") || combined.contains("rhel") || combined.contains("centos") || combined.contains("nobara") {
-            DistroFamily::Fedora
-        } else if combined.contains("arch") || combined.contains("manjaro") || combined.contains("endeavouros") || combined.contains("cachyos") {
-            DistroFamily::Arch
-        } else if combined.contains("suse") || combined.contains("opensuse") {
-            DistroFamily::Suse
-        } else if combined.contains("alpine") {
-            DistroFamily::Alpine
-        } else {
-            DistroFamily::Unknown
-        };
-
+        let details = detect_os();
         DistroInfo {
-            id,
-            pretty_name,
-            family,
+            id: details.id,
+            pretty_name: details.pretty_name,
+            family: DistroFamily::from(details.distro),
         }
     }
 

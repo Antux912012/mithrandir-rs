@@ -8,7 +8,6 @@ use adw::prelude::*;
 use adw::{ActionRow, Clamp, PreferencesGroup};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc;
 use crate::backend::packages::{PackageItem, PackageManager};
 
 pub struct UninstallerPage;
@@ -105,7 +104,7 @@ impl UninstallerPage {
 
                     let row = ActionRow::builder()
                         .title(&p.name)
-                        .subtitle(&format!("v{} | {} | {}", p.version, p.size_str, p.description))
+                        .subtitle(format!("v{} | {} | {}", p.version, p.size_str, p.description))
                         .build();
 
                     let uninst_btn = Button::builder()
@@ -146,23 +145,20 @@ impl UninstallerPage {
                 *current_type.borrow_mut() = pkg_type.to_string();
                 let p_type = pkg_type.to_string();
 
-                let (tx, rx) = mpsc::channel();
-                std::thread::spawn(move || {
-                    let items = PackageManager::list_packages(&p_type);
-                    let _ = tx.send(items);
-                });
-
+                let (tx, rx) = async_channel::unbounded::<Vec<PackageItem>>();
                 let p_cache = packages_cache.clone();
                 let pop = populate.clone();
 
-                glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                    if let Ok(items) = rx.try_recv() {
+                glib::MainContext::default().spawn_local(async move {
+                    if let Ok(items) = rx.recv().await {
                         *p_cache.borrow_mut() = items;
                         pop();
-                        glib::ControlFlow::Break
-                    } else {
-                        glib::ControlFlow::Continue
                     }
+                });
+
+                std::thread::spawn(move || {
+                    let items = PackageManager::list_packages(&p_type);
+                    let _ = tx.send_blocking(items);
                 });
             }
         };

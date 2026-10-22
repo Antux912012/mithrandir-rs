@@ -99,7 +99,7 @@ impl ServicesPage {
 
                     let row = ActionRow::builder()
                         .title(&s.unit)
-                        .subtitle(&format!("{} [{}]", s.description, s.active))
+                        .subtitle(format!("{} [{}]", s.description, s.active))
                         .build();
 
                     let icon_name = if s.is_running {

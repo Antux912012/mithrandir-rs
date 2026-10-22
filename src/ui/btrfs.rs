@@ -81,7 +81,7 @@ impl BtrfsPage {
             for s in snapshots {
                 let row = ActionRow::builder()
                     .title(&s.path)
-                    .subtitle(&format!("Subvolume ID: {}", s.id))
+                    .subtitle(format!("Subvolume ID: {}", s.id))
                     .build();
                 list_box.append(&row);
             }

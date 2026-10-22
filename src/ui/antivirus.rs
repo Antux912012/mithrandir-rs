@@ -8,7 +8,6 @@ use libadwaita as adw;
 use adw::prelude::*;
 use adw::{ActionRow, Banner, Clamp, ExpanderRow, PreferencesGroup};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc;
 use std::sync::Arc;
 use crate::backend::antivirus::AntivirusEngine;
 
@@ -237,7 +236,7 @@ impl AntivirusPage {
                     for entry in entries {
                         let row = ActionRow::builder()
                             .title(&entry.virus_name)
-                            .subtitle(&format!("{} | SHA: {:.8}...", entry.original_path, entry.sha256))
+                            .subtitle(format!("{} | SHA: {:.8}...", entry.original_path, entry.sha256))
                             .build();
 
                         let restore_btn = Button::builder()
@@ -302,26 +301,14 @@ impl AntivirusPage {
                 ce.set_expanded(true);
                 cp.set_visible(true);
 
-                let (tx, rx) = mpsc::channel();
-                std::thread::spawn(move || {
-                    let tx_log = tx.clone();
-                    let res = AntivirusEngine::install_clamav_streaming(move |line| {
-                        let _ = tx_log.send((false, line));
-                    });
-                    let done_msg = match res {
-                        Ok(code) => format!("Installer finished with exit code {}.", code),
-                        Err(e) => format!("Installation error: {}", e),
-                    };
-                    let _ = tx.send((true, done_msg));
-                });
-
+                let (tx, rx) = async_channel::unbounded::<(bool, String)>();
                 let btn_c = btn.clone();
                 let cv_c = cv.clone();
                 let cp_c = cp.clone();
                 let b_c = b.clone();
 
-                glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                    while let Ok((done, line)) = rx.try_recv() {
+                glib::MainContext::default().spawn_local(async move {
+                    while let Ok((done, line)) = rx.recv().await {
                         let buf = cv_c.buffer();
                         let mut end = buf.end_iter();
                         buf.insert(&mut end, &format!("{}\n", line));
@@ -333,10 +320,21 @@ impl AntivirusPage {
                             if st.is_installed {
                                 b_c.set_title(&format!("ClamAV Engine Ready | {}", st.version));
                             }
-                            return glib::ControlFlow::Break;
+                            break;
                         }
                     }
-                    glib::ControlFlow::Continue
+                });
+
+                std::thread::spawn(move || {
+                    let tx_log = tx.clone();
+                    let res = AntivirusEngine::install_clamav_streaming(move |line| {
+                        let _ = tx_log.send_blocking((false, line));
+                    });
+                    let done_msg = match res {
+                        Ok(code) => format!("Installer finished with exit code {}.", code),
+                        Err(e) => format!("Installation error: {}", e),
+                    };
+                    let _ = tx.send_blocking((true, done_msg));
                 });
             });
         }
@@ -353,26 +351,14 @@ impl AntivirusPage {
                 ce.set_expanded(true);
                 cp.set_visible(true);
 
-                let (tx, rx) = mpsc::channel();
-                std::thread::spawn(move || {
-                    let tx_log = tx.clone();
-                    let res = AntivirusEngine::update_definitions_streaming(move |line| {
-                        let _ = tx_log.send((false, line));
-                    });
-                    let done_msg = match res {
-                        Ok(code) => format!("FreshClam finished with exit code {}.", code),
-                        Err(e) => format!("FreshClam error: {}", e),
-                    };
-                    let _ = tx.send((true, done_msg));
-                });
-
+                let (tx, rx) = async_channel::unbounded::<(bool, String)>();
                 let btn_c = btn.clone();
                 let cv_c = cv.clone();
                 let cp_c = cp.clone();
                 let b_c = b.clone();
 
-                glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                    while let Ok((done, line)) = rx.try_recv() {
+                glib::MainContext::default().spawn_local(async move {
+                    while let Ok((done, line)) = rx.recv().await {
                         let buf = cv_c.buffer();
                         let mut end = buf.end_iter();
                         buf.insert(&mut end, &format!("{}\n", line));
@@ -382,10 +368,21 @@ impl AntivirusPage {
                             cp_c.set_visible(false);
                             let st = AntivirusEngine::get_status();
                             b_c.set_title(&format!("ClamAV Engine Ready | {} (Definitions: {})", st.version, st.definitions_date));
-                            return glib::ControlFlow::Break;
+                            break;
                         }
                     }
-                    glib::ControlFlow::Continue
+                });
+
+                std::thread::spawn(move || {
+                    let tx_log = tx.clone();
+                    let res = AntivirusEngine::update_definitions_streaming(move |line| {
+                        let _ = tx_log.send_blocking((false, line));
+                    });
+                    let done_msg = match res {
+                        Ok(code) => format!("FreshClam finished with exit code {}.", code),
+                        Err(e) => format!("FreshClam error: {}", e),
+                    };
+                    let _ = tx.send_blocking((true, done_msg));
                 });
             });
         }
@@ -412,24 +409,9 @@ impl AntivirusPage {
                     fl.remove(&child);
                 }
 
-                let (tx, rx) = mpsc::channel();
+                let (tx, rx) = async_channel::unbounded::<(bool, String, Option<Result<Vec<crate::backend::antivirus::ThreatFinding>, String>>)>();
                 let cancel_clone = scf.clone();
                 let p_scan = path.clone();
-
-                std::thread::spawn(move || {
-                    let tx_log = tx.clone();
-                    let res = AntivirusEngine::scan_directory_streaming(&p_scan, cancel_clone, move |line| {
-                        let _ = tx_log.send((false, line, None));
-                    });
-                    match res {
-                        Ok(findings) => {
-                            let _ = tx.send((true, "Scan completed.".to_string(), Some(Ok(findings))));
-                        }
-                        Err(e) => {
-                            let _ = tx.send((true, format!("Scan error: {}", e), Some(Err(e))));
-                        }
-                    }
-                });
 
                 let cp_c = cp.clone();
                 let cv_c = cv.clone();
@@ -438,8 +420,8 @@ impl AntivirusPage {
                 let ssb_c = ssb.clone();
                 let rq_c = rq.clone();
 
-                glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                    while let Ok((done, line, result_opt)) = rx.try_recv() {
+                glib::MainContext::default().spawn_local(async move {
+                    while let Ok((done, line, result_opt)) = rx.recv().await {
                         let buf = cv_c.buffer();
                         let mut end = buf.end_iter();
                         buf.insert(&mut end, &format!("{}\n", line));
@@ -484,10 +466,24 @@ impl AntivirusPage {
                             } else if let Some(Err(e)) = result_opt {
                                 fg_c.set_description(Some(&format!("Scan terminated: {}", e)));
                             }
-                            return glib::ControlFlow::Break;
+                            break;
                         }
                     }
-                    glib::ControlFlow::Continue
+                });
+
+                std::thread::spawn(move || {
+                    let tx_log = tx.clone();
+                    let res = AntivirusEngine::scan_directory_streaming(&p_scan, cancel_clone, move |line| {
+                        let _ = tx_log.send_blocking((false, line, None));
+                    });
+                    match res {
+                        Ok(findings) => {
+                            let _ = tx.send_blocking((true, "Scan completed.".to_string(), Some(Ok(findings))));
+                        }
+                        Err(e) => {
+                            let _ = tx.send_blocking((true, format!("Scan error: {}", e), Some(Err(e))));
+                        }
+                    }
                 });
             }
         };

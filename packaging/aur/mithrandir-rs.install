@@ -1,6 +1,6 @@
 post_install() {
     echo "================================================================================"
-    echo "  :: Mithrandir-RS v0.4.2 (Rust Edition) installed successfully! 🦀"
+    echo "  :: Mithrandir-RS v0.4.4 (Rust Edition) installed successfully! 🦀"
     echo "  :: Native GTK4 & Libadwaita GNU/Linux Optimizer, Cleaner & Power Saver"
     echo "================================================================================"
     echo "  * Launch the application:          mithrandir-rs"

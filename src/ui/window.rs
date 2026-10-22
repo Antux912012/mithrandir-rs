@@ -204,7 +204,7 @@ impl MithrandirWindow {
                     .application_name("Mithrandir-RS")
                     .application_icon("io.github.antonio.MithrandirRS")
                     .developer_name("Antonio")
-                    .version("0.4.2")
+                    .version("0.4.4")
                     .comments("Blazing-fast GNU/Linux System Cleaner, Optimizer, Telemetry & Diagnostics in Rust (GTK4 & Libadwaita)")
                     .website("https://github.com/Antux912012/mithrandir-rs")
                     .license_type(gtk4::License::Gpl30Only)

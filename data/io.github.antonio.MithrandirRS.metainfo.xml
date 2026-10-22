@@ -35,6 +35,20 @@
   </branding>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.4.4" date="2026-10-22">
+      <description>
+        <p>Mithrandir-RS v0.4.4 introduces major codebase optimizations, reliability fixes, and persistent user preferences:</p>
+        <ul>
+          <li>Consolidated Linux distribution detection natively into os_info, avoiding redundant filesystem reads.</li>
+          <li>Eliminated overlapping directory walks in Cleaner to prevent duplicate cache size counting.</li>
+          <li>Optimized process list sorting with zero heap allocations during telemetry cycles.</li>
+          <li>Cached CPU thermal sysfs paths to eliminate 48 redundant syscalls per second.</li>
+          <li>Prevented subprocess pipe deadlocks in HostBridge streaming execution.</li>
+          <li>Connected Preferences dialog controls to persistent configuration storage.</li>
+          <li>Replaced UI polling loops with reactive glib event-driven channels.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.2" date="2026-10-22">
       <description>
         <p>Mithrandir-RS v0.4.2 introduces native System Tray integration, Hardware Power Saver mode, and multi-distribution adaptability:</p>

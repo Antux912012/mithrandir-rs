@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 use serde::{Deserialize, Serialize};
@@ -78,6 +78,28 @@ pub struct SystemSummary {
 
 static SYSTEM_MUTEX: OnceLock<Mutex<System>> = OnceLock::new();
 static NET_PREV: OnceLock<Mutex<Option<(Instant, u64, u64)>>> = OnceLock::new();
+static THERMAL_PATHS: OnceLock<Vec<PathBuf>> = OnceLock::new();
+
+fn get_thermal_paths() -> &'static Vec<PathBuf> {
+    THERMAL_PATHS.get_or_init(|| {
+        let mut paths = Vec::new();
+        for zone in 0..8 {
+            let p = PathBuf::from(format!("/sys/class/thermal/thermal_zone{}/temp", zone));
+            if p.exists() {
+                paths.push(p);
+            }
+        }
+        for hwmon in 0..8 {
+            for t_idx in 1..6 {
+                let p = PathBuf::from(format!("/sys/class/hwmon/hwmon{}/temp{}_input", hwmon, t_idx));
+                if p.exists() {
+                    paths.push(p);
+                }
+            }
+        }
+        paths
+    })
+}
 
 fn get_system() -> &'static Mutex<System> {
     SYSTEM_MUTEX.get_or_init(|| {
@@ -147,29 +169,15 @@ impl SystemMonitor {
     }
 
     pub fn get_cpu_temperature() -> Option<f32> {
+        let paths = get_thermal_paths();
         let mut temps = Vec::new();
 
-        for zone in 0..8 {
-            let path = format!("/sys/class/thermal/thermal_zone{}/temp", zone);
-            if let Ok(content) = fs::read_to_string(&path) {
+        for path in paths {
+            if let Ok(content) = fs::read_to_string(path) {
                 if let Ok(val) = content.trim().parse::<f32>() {
                     let t = if val > 200.0 { val / 1000.0 } else { val };
                     if (10.0..=115.0).contains(&t) {
                         temps.push(t);
-                    }
-                }
-            }
-        }
-
-        for hwmon in 0..8 {
-            for t_idx in 1..6 {
-                let path = format!("/sys/class/hwmon/hwmon{}/temp{}_input", hwmon, t_idx);
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if let Ok(val) = content.trim().parse::<f32>() {
-                        let t = if val > 200.0 { val / 1000.0 } else { val };
-                        if (10.0..=115.0).contains(&t) {
-                            temps.push(t);
-                        }
                     }
                 }
             }

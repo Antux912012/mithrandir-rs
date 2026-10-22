@@ -95,21 +95,36 @@ impl HostBridge {
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
-        if let Some(out) = stdout {
-            let reader = BufReader::new(out);
-            for line in reader.lines().map_while(Result::ok) {
-                on_line(line);
-            }
-        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tx_err = tx.clone();
 
-        if let Some(err) = stderr {
-            let reader = BufReader::new(err);
-            for line in reader.lines().map_while(Result::ok) {
-                if !line.is_empty() {
-                    on_line(line);
+        let handle_out = std::thread::spawn(move || {
+            if let Some(out) = stdout {
+                let reader = BufReader::new(out);
+                for line in reader.lines().map_while(Result::ok) {
+                    let _ = tx.send(line);
                 }
             }
+        });
+
+        let handle_err = std::thread::spawn(move || {
+            if let Some(err) = stderr {
+                let reader = BufReader::new(err);
+                for line in reader.lines().map_while(Result::ok) {
+                    if !line.is_empty() {
+                        let _ = tx_err.send(line);
+                    }
+                }
+            }
+        });
+
+        // Consume merged lines in real-time as either pipe produces output
+        for line in rx {
+            on_line(line);
         }
+
+        let _ = handle_out.join();
+        let _ = handle_err.join();
 
         let status = child
             .wait()

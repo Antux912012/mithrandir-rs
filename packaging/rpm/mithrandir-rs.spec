@@ -1,5 +1,5 @@
 Name:           mithrandir-rs
-Version:        0.4.2
+Version:        0.4.4
 Release:        1%{?dist}
 Summary:        Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Hardware Power Saver in Rust
 
@@ -44,7 +44,7 @@ cp -r %{_sourcedir}/data/icons/hicolor/* %{buildroot}%{_datadir}/icons/hicolor/
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 /usr/bin/update-desktop-database &> /dev/null || :
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
-echo "==> Mithrandir-RS v0.4.2 installed successfully!"
+echo "==> Mithrandir-RS v0.4.4 installed successfully!"
 echo "==> Native GTK4/Libadwaita System Optimizer, Cleaner & Hardware Power Saver."
 echo "==> Launch with 'mithrandir-rs' or start in system tray with 'mithrandir-rs --background'."
 
@@ -62,6 +62,8 @@ echo "==> Launch with 'mithrandir-rs' or start in system tray with 'mithrandir-r
 %{_datadir}/icons/hicolor/*/*/*.*
 
 %changelog
+* Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.4-1
+- Release 0.4.4: Major codebase optimizations, persistent preferences, zero-allocation process sorting, and dead-lock prevention.
 * Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.2-1
 - Release 0.4.2: Hardware Power Saver, pure Rust D-Bus system tray, and multi-distro adaptability.
 * Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.1-1

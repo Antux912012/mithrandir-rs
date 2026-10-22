@@ -15,13 +15,16 @@ pub enum LinuxDistro {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OsDetails {
+    pub id: String,
+    pub pretty_name: String,
     pub distro: LinuxDistro,
     pub version_id: Option<String>,
 }
 
 /// Parses /etc/os-release content natively into structured OS details.
 pub fn parse_os_release(content: &str) -> OsDetails {
-    let mut id = String::new();
+    let mut id = "linux".to_string();
+    let mut pretty_name = "GNU/Linux".to_string();
     let mut id_like = Vec::new();
     let mut version_id = None;
 
@@ -29,6 +32,8 @@ pub fn parse_os_release(content: &str) -> OsDetails {
         let line = line.trim();
         if let Some(val) = line.strip_prefix("ID=") {
             id = val.trim_matches('"').trim_matches('\'').to_lowercase();
+        } else if let Some(val) = line.strip_prefix("PRETTY_NAME=") {
+            pretty_name = val.trim_matches('"').trim_matches('\'').to_string();
         } else if let Some(val) = line.strip_prefix("ID_LIKE=") {
             id_like = val
                 .trim_matches('"')
@@ -43,9 +48,9 @@ pub fn parse_os_release(content: &str) -> OsDetails {
 
     let distro = match id.as_str() {
         "debian" => LinuxDistro::Debian,
-        "ubuntu" => LinuxDistro::Ubuntu,
-        "fedora" | "rhel" | "rocky" | "almalinux" => LinuxDistro::Fedora,
-        "arch" => LinuxDistro::Arch,
+        "ubuntu" | "linuxmint" | "pop" => LinuxDistro::Ubuntu,
+        "fedora" | "rhel" | "rocky" | "almalinux" | "centos" | "nobara" => LinuxDistro::Fedora,
+        "arch" | "manjaro" | "endeavouros" => LinuxDistro::Arch,
         "cachyos" => LinuxDistro::CachyOS,
         "opensuse" | "opensuse-tumbleweed" | "opensuse-leap" | "suse" => LinuxDistro::OpenSuse,
         "nixos" => LinuxDistro::NixOS,
@@ -65,15 +70,30 @@ pub fn parse_os_release(content: &str) -> OsDetails {
         }
     };
 
-    OsDetails { distro, version_id }
+    OsDetails {
+        id,
+        pretty_name,
+        distro,
+        version_id,
+    }
 }
 
-/// Detects the current Linux distribution from /etc/os-release or /usr/lib/os-release.
+/// Detects the current Linux distribution from /etc/os-release or host mount points.
 pub fn detect_os() -> OsDetails {
-    let content = fs::read_to_string("/etc/os-release")
-        .or_else(|_| fs::read_to_string("/usr/lib/os-release"))
-        .unwrap_or_default();
-    parse_os_release(&content)
+    let candidates = [
+        "/etc/os-release",
+        "/usr/lib/os-release",
+        "/run/host/etc/os-release",
+        "/run/host/usr/lib/os-release",
+    ];
+
+    for path in &candidates {
+        if let Ok(content) = fs::read_to_string(path) {
+            return parse_os_release(&content);
+        }
+    }
+
+    parse_os_release("")
 }
 
 /// Returns the primary administrative group ('wheel' vs 'sudo') for a given distro.

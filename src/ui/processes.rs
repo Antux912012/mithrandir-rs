@@ -120,7 +120,7 @@ impl ProcessesPage {
                         procs.sort_by(|a, b| b.cpu_percent.partial_cmp(&a.cpu_percent).unwrap_or(std::cmp::Ordering::Equal));
                     }
                     SortOrder::Name => {
-                        procs.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+                        procs.sort_by_key(|a| a.name.to_lowercase());
                     }
                 }
 
@@ -140,8 +140,8 @@ impl ProcessesPage {
                     count += 1;
 
                     let row = ActionRow::builder()
-                        .title(&format!("{} (PID: {})", p.name, p.pid))
-                        .subtitle(&format!("CPU: {:.1}% | RAM: {:.1} MB ({:.1}%)", p.cpu_percent, p.mem_mb, p.mem_percent))
+                        .title(format!("{} (PID: {})", p.name, p.pid))
+                        .subtitle(format!("CPU: {:.1}% | RAM: {:.1} MB ({:.1}%)", p.cpu_percent, p.mem_mb, p.mem_percent))
                         .build();
 
                     let kill_btn = Button::builder()

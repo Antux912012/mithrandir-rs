@@ -3,7 +3,7 @@ set -e
 
 if [ "$1" = "configure" ]; then
     echo "================================================================================"
-    echo "  Mithrandir-RS v0.4.2 installed successfully! 🦀"
+    echo "  Mithrandir-RS v0.4.4 installed successfully! 🦀"
     echo "  Native GTK4 & Libadwaita GNU/Linux Optimizer, Deep Cleaner & Hardware Power Saver"
     echo "================================================================================"
     echo "  * Launch the GUI:               mithrandir-rs"

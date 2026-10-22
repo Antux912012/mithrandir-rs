@@ -119,7 +119,7 @@ impl AIPage {
         for model in get_recommended_qwen_models() {
             let m_row = ActionRow::builder()
                 .title(&model.name)
-                .subtitle(&format!("{} | {} | {}", model.size, model.ram_required, model.description))
+                .subtitle(format!("{} | {} | {}", model.size, model.ram_required, model.description))
                 .build();
 
             let dl_btn = Button::builder()

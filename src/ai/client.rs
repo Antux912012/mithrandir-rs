@@ -18,6 +18,37 @@ pub struct AIClient {
 }
 
 impl AIClient {
+    pub fn build_curl_post(endpoint: &str, headers: &[(&str, &str)], timeout_secs: u32) -> Command {
+        let mut cmd = Command::new("curl");
+        cmd.args([
+            "-s",
+            "-X",
+            "POST",
+            "--max-time",
+            &timeout_secs.to_string(),
+            "-H",
+            "Content-Type: application/json",
+            "-H",
+            "User-Agent: Mithrandir-RS/0.4.4",
+        ]);
+        for (k, v) in headers {
+            cmd.args(["-H", &format!("{}: {}", k, v)]);
+        }
+        cmd.args(["--data-binary", "@-", endpoint]);
+        cmd.stdin(Stdio::piped());
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+        cmd
+    }
+
+    pub fn send_json_post(cmd: &mut Command, body: &str) -> Result<std::process::Output, String> {
+        let mut child = cmd.spawn().map_err(|e| format!("Failed to call curl: {}", e))?;
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(body.as_bytes());
+        }
+        child.wait_with_output().map_err(|e| format!("HTTP request failed: {}", e))
+    }
+
     pub fn new(base_url: &str, api_key: &str, model: &str) -> Self {
         Self {
             base_url: Self::normalize_base_url(base_url),
@@ -312,33 +343,12 @@ impl AIClient {
             let body = Self::build_gemini_payload(messages, 0.3);
             let body_str = body.to_string();
 
-            let mut cmd = Command::new("curl");
-            cmd.args([
-                "-s",
-                "-X",
-                "POST",
-                "--max-time",
-                "90",
-                "-H",
-                "Content-Type: application/json",
-                "-H",
-                "User-Agent: Mithrandir-RS/0.4.1",
-                "-H",
-                &format!("x-goog-api-key: {}", self.api_key),
-                "--data-binary",
-                "@-",
+            let mut cmd = Self::build_curl_post(
                 &endpoint,
-            ]);
-            cmd.stdin(Stdio::piped());
-            cmd.stdout(Stdio::piped());
-            cmd.stderr(Stdio::piped());
-
-            let mut child = cmd.spawn().map_err(|e| format!("Failed to call curl: {}", e))?;
-            if let Some(mut stdin) = child.stdin.take() {
-                let _ = stdin.write_all(body_str.as_bytes());
-            }
-
-            let output = child.wait_with_output().map_err(|e| format!("HTTP request failed: {}", e))?;
+                &[("x-goog-api-key", &self.api_key)],
+                90,
+            );
+            let output = Self::send_json_post(&mut cmd, &body_str)?;
             if !output.status.success() {
                 let err_str = String::from_utf8_lossy(&output.stderr);
                 return Err(format!("Gemini API Network Error: {}", err_str));
@@ -391,33 +401,15 @@ impl AIClient {
             }
 
             let body_str = body.to_string();
-            let mut cmd = Command::new("curl");
-            cmd.args([
-                "-s",
-                "-X",
-                "POST",
-                "--max-time",
-                "90",
-                "-H",
-                "Content-Type: application/json",
-                "-H",
-                "anthropic-version: 2023-06-01",
-                "-H",
-                &format!("x-api-key: {}", self.api_key),
-                "--data-binary",
-                "@-",
+            let mut cmd = Self::build_curl_post(
                 &endpoint,
-            ]);
-            cmd.stdin(Stdio::piped());
-            cmd.stdout(Stdio::piped());
-            cmd.stderr(Stdio::piped());
-
-            let mut child = cmd.spawn().map_err(|e| format!("Failed to call curl: {}", e))?;
-            if let Some(mut stdin) = child.stdin.take() {
-                let _ = stdin.write_all(body_str.as_bytes());
-            }
-
-            let output = child.wait_with_output().map_err(|e| format!("HTTP request failed: {}", e))?;
+                &[
+                    ("anthropic-version", "2023-06-01"),
+                    ("x-api-key", &self.api_key),
+                ],
+                90,
+            );
+            let output = Self::send_json_post(&mut cmd, &body_str)?;
             if !output.status.success() {
                 let err_str = String::from_utf8_lossy(&output.stderr);
                 return Err(format!("Claude API Error: {}", err_str));
@@ -459,29 +451,14 @@ impl AIClient {
 
         let body_str = body.to_string();
 
-        let mut cmd = Command::new("curl");
-        cmd.args([
-            "-s", "-X", "POST",
-            "--max-time", "90",
-            "-H", "Content-Type: application/json",
-            "-H", "User-Agent: Mithrandir-RS/0.4.1",
-        ]);
-
+        let mut headers = Vec::new();
         if !self.api_key.is_empty() {
-            cmd.args(["-H", &format!("Authorization: Bearer {}", self.api_key)]);
+            headers.push(("Authorization", format!("Bearer {}", self.api_key)));
         }
+        let borrowed_headers: Vec<(&str, &str)> = headers.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        let mut cmd = Self::build_curl_post(&endpoint, &borrowed_headers, 90);
+        let output = Self::send_json_post(&mut cmd, &body_str)?;
 
-        cmd.args(["--data-binary", "@-", &endpoint]);
-        cmd.stdin(Stdio::piped());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::piped());
-
-        let mut child = cmd.spawn().map_err(|e| format!("Failed to call curl: {}", e))?;
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(body_str.as_bytes());
-        }
-
-        let output = child.wait_with_output().map_err(|e| format!("HTTP request failed: {}", e))?;
         if !output.status.success() {
             let err_str = String::from_utf8_lossy(&output.stderr);
             return Err(format!("AI Endpoint Error: {}", err_str));

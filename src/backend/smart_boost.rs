@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -110,22 +109,7 @@ impl SmartBoostEngine {
             let home = std::env::var("HOME").unwrap_or_default();
             let thumb_path = Path::new(&home).join(".cache/thumbnails");
             CleanerEngine::clean_path(&thumb_path);
-
-            // Clean user files in /tmp
-            let current_uid = unsafe { libc::getuid() };
-            if let Ok(entries) = fs::read_dir("/tmp") {
-                for entry in entries.filter_map(Result::ok) {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::MetadataExt;
-                        if let Ok(meta) = entry.metadata() {
-                            if meta.is_file() && meta.uid() == current_uid {
-                                let _ = fs::remove_file(entry.path());
-                            }
-                        }
-                    }
-                }
-            }
+            CleanerEngine::clean_user_tmp();
         }
 
         // 2. Drop inactive pagecache & slab caches

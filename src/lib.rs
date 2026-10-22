@@ -12,7 +12,7 @@ pub use power::PowerManager;
 pub use os_info::{detect_os, get_admin_group, LinuxDistro, OsDetails};
 
 pub use backend::{
-    AntivirusEngine, AutostartManager, BackgroundDaemon, BatteryInfo, BtrfsManager, CleanCategory,
+    AntivirusEngine, AppSettings, AutostartManager, BackgroundDaemon, BatteryInfo, BtrfsManager, CleanCategory,
     CleanerEngine, DiagnosticsCollector, DistroDetector, DistroFamily, GrubManager,
     HostBridge, NotificationManager, PackageManager, ProcessManager, ServiceManager,
     SmartBoostEngine, SystemMonitor, ThreatFinding,

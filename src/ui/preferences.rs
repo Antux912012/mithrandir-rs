@@ -1,6 +1,7 @@
 use libadwaita as adw;
 use adw::prelude::*;
 use adw::{ActionRow, PreferencesGroup, PreferencesPage, PreferencesWindow, SpinRow, SwitchRow};
+use crate::backend::settings::AppSettings;
 
 pub struct PreferencesDialog;
 
@@ -14,6 +15,7 @@ impl PreferencesDialog {
             .default_height(520)
             .build();
 
+        let settings = AppSettings::get();
         let page = PreferencesPage::new();
 
         // 1. Background Service & Integration
@@ -25,15 +27,23 @@ impl PreferencesDialog {
         let keep_bg_row = SwitchRow::builder()
             .title("Keep Running in Background")
             .subtitle("Hide window on close instead of exiting")
-            .active(true)
+            .active(settings.keep_in_background)
             .build();
+        keep_bg_row.connect_active_notify(|row| {
+            let active = row.is_active();
+            AppSettings::update(|cfg| cfg.keep_in_background = active);
+        });
         bg_group.add(&keep_bg_row);
 
         let indicator_row = SwitchRow::builder()
-            .title("Show GNOME Top Bar Applet")
+            .title("Show Status Notifier / AppIndicator Tray")
             .subtitle("Display quick-boost indicator in status area")
-            .active(true)
+            .active(settings.show_tray_icon)
             .build();
+        indicator_row.connect_active_notify(|row| {
+            let active = row.is_active();
+            AppSettings::update(|cfg| cfg.show_tray_icon = active);
+        });
         bg_group.add(&indicator_row);
         page.add(&bg_group);
 
@@ -46,29 +56,45 @@ impl PreferencesDialog {
         let auto_boost_row = SwitchRow::builder()
             .title("Automated Background Optimization")
             .subtitle("Periodically trim standby pagecache when RAM usage is high")
-            .active(true)
+            .active(settings.auto_boost_enabled)
             .build();
+        auto_boost_row.connect_active_notify(|row| {
+            let active = row.is_active();
+            AppSettings::update(|cfg| cfg.auto_boost_enabled = active);
+        });
         boost_group.add(&auto_boost_row);
 
         let ram_thresh_row = SpinRow::builder()
             .title("RAM Threshold (%)")
             .subtitle("Trigger optimization when system memory crosses threshold")
-            .adjustment(&gtk4::Adjustment::new(80.0, 50.0, 95.0, 1.0, 5.0, 0.0))
+            .adjustment(&gtk4::Adjustment::new(settings.ram_threshold, 50.0, 95.0, 1.0, 5.0, 0.0))
             .build();
+        ram_thresh_row.connect_value_notify(|row| {
+            let val = row.value();
+            AppSettings::update(|cfg| cfg.ram_threshold = val);
+        });
         boost_group.add(&ram_thresh_row);
 
         let cooldown_row = SpinRow::builder()
             .title("Cooldown Interval (minutes)")
             .subtitle("Minimum cooldown between automated boosts to prevent thrashing")
-            .adjustment(&gtk4::Adjustment::new(15.0, 1.0, 120.0, 1.0, 5.0, 0.0))
+            .adjustment(&gtk4::Adjustment::new(settings.cooldown_minutes as f64, 1.0, 120.0, 1.0, 5.0, 0.0))
             .build();
+        cooldown_row.connect_value_notify(|row| {
+            let val = row.value().round() as u64;
+            AppSettings::update(|cfg| cfg.cooldown_minutes = val);
+        });
         boost_group.add(&cooldown_row);
 
         let notify_row = SwitchRow::builder()
             .title("Desktop Notifications")
             .subtitle("Notify when RAM is reclaimed or cache is cleaned")
-            .active(true)
+            .active(settings.desktop_notifications)
             .build();
+        notify_row.connect_active_notify(|row| {
+            let active = row.is_active();
+            AppSettings::update(|cfg| cfg.desktop_notifications = active);
+        });
         boost_group.add(&notify_row);
         page.add(&boost_group);
 
@@ -81,15 +107,23 @@ impl PreferencesDialog {
         let auto_fresh_row = SwitchRow::builder()
             .title("Auto-Update Before Scanning")
             .subtitle("Invoke FreshClam to fetch latest signatures before executing scans")
-            .active(false)
+            .active(settings.auto_freshclam)
             .build();
+        auto_fresh_row.connect_active_notify(|row| {
+            let active = row.is_active();
+            AppSettings::update(|cfg| cfg.auto_freshclam = active);
+        });
         av_group.add(&auto_fresh_row);
 
         let stale_hours_row = SpinRow::builder()
             .title("Definition Stale Threshold (hours)")
             .subtitle("Warn when local virus definitions are older than this value")
-            .adjustment(&gtk4::Adjustment::new(24.0, 1.0, 168.0, 1.0, 12.0, 0.0))
+            .adjustment(&gtk4::Adjustment::new(settings.stale_hours_threshold as f64, 1.0, 168.0, 1.0, 12.0, 0.0))
             .build();
+        stale_hours_row.connect_value_notify(|row| {
+            let val = row.value().round() as u64;
+            AppSettings::update(|cfg| cfg.stale_hours_threshold = val);
+        });
         av_group.add(&stale_hours_row);
         page.add(&av_group);
 

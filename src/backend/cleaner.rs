@@ -53,12 +53,24 @@ impl CleanerEngine {
     }
 
     pub fn scan_path(path: &Path) -> (u64, usize) {
+        Self::scan_path_excluding(path, &[])
+    }
+
+    pub fn scan_path_excluding(path: &Path, exclude_subdirs: &[&str]) -> (u64, usize) {
         if !path.exists() {
             return (0, 0);
         }
 
         WalkDir::new(path)
             .into_iter()
+            .filter_entry(|e| {
+                if e.depth() == 1 && e.file_type().is_dir() {
+                    let fname = e.file_name().to_string_lossy();
+                    !exclude_subdirs.contains(&fname.as_ref())
+                } else {
+                    true
+                }
+            })
             .par_bridge()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
@@ -68,7 +80,6 @@ impl CleanerEngine {
     }
 
     pub fn get_categories() -> Vec<CleanCategory> {
-        let mut list = Vec::new();
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         let home_p = PathBuf::from(&home);
 
@@ -86,7 +97,7 @@ impl CleanerEngine {
 
         let cats = [
             ("thumbnails", "Thumbnail Cache", "Cached image and video thumbnails", home_p.join(".cache/thumbnails")),
-            ("user_cache", "User Application Cache", "Application cache files in ~/.cache", home_p.join(".cache")),
+            ("user_cache", "User Application Cache", "Application cache files in ~/.cache (excluding browsers, dev, thumbnails)", home_p.join(".cache")),
             ("browser_cache", "Web Browser Caches", "Firefox, Chrome, Chromium, Brave, and Edge caches", home_p.join(".cache/mozilla")),
             ("stremio_cache", "Stremio Streaming Cache", "Torrent parts and media stream cache", home_p.join(".config/stremio/stremio-cache")),
             ("dev_cache", "Developer & Package Caches", "Pip, Cargo, and npm package cache directories", home_p.join(".cache/pip")),
@@ -97,47 +108,51 @@ impl CleanerEngine {
             ("package_cache", "Package Manager Cache", "Cached APT, DNF, or Pacman package archives", pkg_cache_path),
         ];
 
-        for (id, name, desc, path) in cats {
-            let (size_bytes, file_count) = if id == "tmp" {
-                Self::scan_user_tmp()
-            } else if id == "browser_cache" {
-                let (s1, c1) = Self::scan_path(&home_p.join(".cache/mozilla"));
-                let (s2, c2) = Self::scan_path(&home_p.join(".cache/google-chrome"));
-                let (s3, c3) = Self::scan_path(&home_p.join(".cache/chromium"));
-                (s1 + s2 + s3, c1 + c2 + c3)
-            } else if id == "dev_cache" {
-                let (s1, c1) = Self::scan_path(&home_p.join(".cache/pip"));
-                let (s2, c2) = Self::scan_path(&home_p.join(".npm/_cacache"));
-                let (s3, c3) = Self::scan_path(&home_p.join(".cargo/registry/cache"));
-                (s1 + s2 + s3, c1 + c2 + c3)
-            } else if id == "package_cache" {
-                let mut total_s = 0;
-                let mut total_c = 0;
-                for p in &["/var/cache/libdnf5", "/var/cache/dnf", "/var/cache/apt/archives", "/var/cache/pacman/pkg"] {
-                    let pb = Path::new(p);
-                    if pb.exists() {
-                        let (s, c) = Self::scan_path(pb);
-                        total_s += s;
-                        total_c += c;
+        let home_ref = home_p.clone();
+        cats.into_par_iter()
+            .map(|(id, name, desc, path)| {
+                let (size_bytes, file_count) = if id == "tmp" {
+                    Self::scan_user_tmp()
+                } else if id == "user_cache" {
+                    let exclusions = ["thumbnails", "mozilla", "google-chrome", "chromium", "BraveSoftware", "microsoft-edge", "pip"];
+                    Self::scan_path_excluding(&path, &exclusions)
+                } else if id == "browser_cache" {
+                    let (s1, c1) = Self::scan_path(&home_ref.join(".cache/mozilla"));
+                    let (s2, c2) = Self::scan_path(&home_ref.join(".cache/google-chrome"));
+                    let (s3, c3) = Self::scan_path(&home_ref.join(".cache/chromium"));
+                    (s1 + s2 + s3, c1 + c2 + c3)
+                } else if id == "dev_cache" {
+                    let (s1, c1) = Self::scan_path(&home_ref.join(".cache/pip"));
+                    let (s2, c2) = Self::scan_path(&home_ref.join(".npm/_cacache"));
+                    let (s3, c3) = Self::scan_path(&home_ref.join(".cargo/registry/cache"));
+                    (s1 + s2 + s3, c1 + c2 + c3)
+                } else if id == "package_cache" {
+                    let mut total_s = 0;
+                    let mut total_c = 0;
+                    for p in &["/var/cache/libdnf5", "/var/cache/dnf", "/var/cache/apt/archives", "/var/cache/pacman/pkg"] {
+                        let pb = Path::new(p);
+                        if pb.exists() {
+                            let (s, c) = Self::scan_path(pb);
+                            total_s += s;
+                            total_c += c;
+                        }
                     }
+                    (total_s, total_c)
+                } else {
+                    Self::scan_path(&path)
+                };
+
+                CleanCategory {
+                    id: id.to_string(),
+                    name: name.to_string(),
+                    description: desc.to_string(),
+                    path,
+                    size_bytes,
+                    file_count,
+                    size_mb: ((size_bytes as f64 / (1024.0 * 1024.0)) * 10.0).round() / 10.0,
                 }
-                (total_s, total_c)
-            } else {
-                Self::scan_path(&path)
-            };
-
-            list.push(CleanCategory {
-                id: id.to_string(),
-                name: name.to_string(),
-                description: desc.to_string(),
-                path,
-                size_bytes,
-                file_count,
-                size_mb: ((size_bytes as f64 / (1024.0 * 1024.0)) * 10.0).round() / 10.0,
-            });
-        }
-
-        list
+            })
+            .collect()
     }
 
     pub fn scan_user_tmp() -> (u64, usize) {
@@ -173,6 +188,10 @@ impl CleanerEngine {
     }
 
     pub fn clean_path(path: &Path) -> (u64, usize) {
+        Self::clean_path_excluding(path, &[])
+    }
+
+    pub fn clean_path_excluding(path: &Path, exclude_subdirs: &[&str]) -> (u64, usize) {
         if !Self::is_path_safe(path) || !path.exists() {
             return (0, 0);
         }
@@ -180,6 +199,14 @@ impl CleanerEngine {
         let files: Vec<PathBuf> = WalkDir::new(path)
             .min_depth(1)
             .into_iter()
+            .filter_entry(|e| {
+                if e.depth() == 1 && e.file_type().is_dir() {
+                    let fname = e.file_name().to_string_lossy();
+                    !exclude_subdirs.contains(&fname.as_ref())
+                } else {
+                    true
+                }
+            })
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .map(|e| e.path().to_path_buf())
@@ -198,13 +225,54 @@ impl CleanerEngine {
             .reduce(|| (0, 0), |(s1, c1), (s2, c2)| (s1 + s2, c1 + c2))
     }
 
+    pub fn clean_user_tmp() -> (u64, usize) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let current_uid = unsafe { libc::getuid() };
+            let tmp = Path::new("/tmp");
+            let files: Vec<PathBuf> = WalkDir::new(tmp)
+                .min_depth(1)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| {
+                    if let Ok(meta) = e.path().symlink_metadata() {
+                        meta.is_file() && meta.uid() == current_uid
+                    } else {
+                        false
+                    }
+                })
+                .map(|e| e.path().to_path_buf())
+                .collect();
+
+            files
+                .into_par_iter()
+                .map(|f| {
+                    let size = f.metadata().map(|m| m.len()).unwrap_or(0);
+                    if fs::remove_file(&f).is_ok() {
+                        (size, 1usize)
+                    } else {
+                        (0, 0)
+                    }
+                })
+                .reduce(|| (0, 0), |(s1, c1), (s2, c2)| (s1 + s2, c1 + c2))
+        }
+        #[cfg(not(unix))]
+        {
+            (0, 0)
+        }
+    }
+
     pub fn clean_category(cat_id: &str) -> CleanResult {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         let home_p = PathBuf::from(&home);
 
         let (bytes, count) = match cat_id {
             "thumbnails" => Self::clean_path(&home_p.join(".cache/thumbnails")),
-            "user_cache" => Self::clean_path(&home_p.join(".cache")),
+            "user_cache" => {
+                let exclusions = ["thumbnails", "mozilla", "google-chrome", "chromium", "BraveSoftware", "microsoft-edge", "pip"];
+                Self::clean_path_excluding(&home_p.join(".cache"), &exclusions)
+            }
             "browser_cache" => {
                 let (b1, c1) = Self::clean_path(&home_p.join(".cache/mozilla"));
                 let (b2, c2) = Self::clean_path(&home_p.join(".cache/google-chrome"));
@@ -225,43 +293,7 @@ impl CleanerEngine {
             "flatpak_cache" => Self::clean_path(&home_p.join(".var/app")),
             "snap_cache" => Self::clean_path(&home_p.join("snap")),
             "trash" => Self::clean_path(&home_p.join(".local/share/Trash")),
-            "tmp" => {
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::MetadataExt;
-                    let current_uid = unsafe { libc::getuid() };
-                    let tmp = Path::new("/tmp");
-                    let files: Vec<PathBuf> = WalkDir::new(tmp)
-                        .min_depth(1)
-                        .into_iter()
-                        .filter_map(|e| e.ok())
-                        .filter(|e| {
-                            if let Ok(meta) = e.path().symlink_metadata() {
-                                meta.is_file() && meta.uid() == current_uid
-                            } else {
-                                false
-                            }
-                        })
-                        .map(|e| e.path().to_path_buf())
-                        .collect();
-
-                    files
-                        .into_par_iter()
-                        .map(|f| {
-                            let size = f.metadata().map(|m| m.len()).unwrap_or(0);
-                            if fs::remove_file(&f).is_ok() {
-                                (size, 1usize)
-                            } else {
-                                (0, 0)
-                            }
-                        })
-                        .reduce(|| (0, 0), |(s1, c1), (s2, c2)| (s1 + s2, c1 + c2))
-                }
-                #[cfg(not(unix))]
-                {
-                    (0, 0)
-                }
-            }
+            "tmp" => Self::clean_user_tmp(),
             "package_cache" => {
                 let _ = HostBridge::run_privileged(&["sh", "-c", "apt-get clean 2>/dev/null || dnf clean all 2>/dev/null || pacman -Scc --noconfirm 2>/dev/null || true"]);
                 let _ = HostBridge::run_privileged(&["journalctl", "--vacuum-time=7d"]);

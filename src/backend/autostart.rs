@@ -18,7 +18,7 @@ pub struct AutostartManager;
 
 impl AutostartManager {
     fn get_user_autostart_dir() -> PathBuf {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/home/antonio".to_string());
+        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         PathBuf::from(home).join(".config/autostart")
     }
 

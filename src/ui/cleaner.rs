@@ -6,7 +6,6 @@ use adw::prelude::*;
 use adw::{ActionRow, Clamp, PreferencesGroup};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::mpsc;
 use crate::backend::cleaner::CleanerEngine;
 
 struct CleanerRowWidgets {
@@ -102,18 +101,13 @@ impl CleanerPage {
             scan_btn_clone.set_sensitive(false);
             scan_btn_clone.set_label("Scanning...");
 
-            let (tx, rx) = mpsc::channel();
-            std::thread::spawn(move || {
-                let scanned = CleanerEngine::get_categories();
-                let _ = tx.send(scanned);
-            });
-
+            let (tx, rx) = async_channel::unbounded::<Vec<crate::backend::cleaner::CleanCategory>>();
             let s_btn = scan_btn_clone.clone();
             let c_btn = clean_btn_clone.clone();
             let r_state = rows_state_clone.clone();
 
-            glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                if let Ok(results) = rx.try_recv() {
+            glib::MainContext::default().spawn_local(async move {
+                if let Ok(results) = rx.recv().await {
                     s_btn.set_sensitive(true);
                     s_btn.set_label("Scan System");
                     c_btn.set_sensitive(true);
@@ -124,10 +118,12 @@ impl CleanerPage {
                             r.size_label.set_label(&format!("{:.1} MB ({} files)", cat.size_mb, cat.file_count));
                         }
                     }
-                    glib::ControlFlow::Break
-                } else {
-                    glib::ControlFlow::Continue
                 }
+            });
+
+            std::thread::spawn(move || {
+                let scanned = CleanerEngine::get_categories();
+                let _ = tx.send_blocking(scanned);
             });
         });
 
@@ -146,21 +142,12 @@ impl CleanerPage {
                 .map(|r| r.cat_id.clone())
                 .collect();
 
-            let (tx, rx) = mpsc::channel();
-            std::thread::spawn(move || {
-                let mut freed_mb = 0.0;
-                for id in selected_ids {
-                    let res = CleanerEngine::clean_category(&id);
-                    freed_mb += res.freed_mb;
-                }
-                let _ = tx.send(freed_mb);
-            });
-
+            let (tx, rx) = async_channel::unbounded::<f64>();
             let c_btn = clean_btn_for_clean.clone();
             let r_state = rows_state_for_clean.clone();
 
-            glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
-                if let Ok(freed) = rx.try_recv() {
+            glib::MainContext::default().spawn_local(async move {
+                if let Ok(freed) = rx.recv().await {
                     c_btn.set_sensitive(false);
                     c_btn.set_label("Clean Selected");
 
@@ -174,10 +161,16 @@ impl CleanerPage {
                         "🧹 Clean Complete",
                         &format!("Freed {:.1} MB of system clutter.", freed),
                     );
-                    glib::ControlFlow::Break
-                } else {
-                    glib::ControlFlow::Continue
                 }
+            });
+
+            std::thread::spawn(move || {
+                let mut freed_mb = 0.0;
+                for id in selected_ids {
+                    let res = CleanerEngine::clean_category(&id);
+                    freed_mb += res.freed_mb;
+                }
+                let _ = tx.send_blocking(freed_mb);
             });
         });
 
