@@ -20,12 +20,12 @@
 
 ---
 
-> [!WARNING]
-> **Mithrandir-RS is an EXPERIMENTAL preview release.**  
-> This Rust port is under active early development. Many features and deep system integrations from the original Mithrandir are still missing or partially implemented.  
-> If you are looking for the full-featured, mature, and stable version with complete system maintenance tools and package managers, please use the original [**Mithrandir (Python & Libadwaita Edition)**](https://github.com/Antux912012/mithrandir).
+> [!IMPORTANT]
+> **Project Roadmap & Deprecation Notice:**  
+> The standard Python edition of [**Mithrandir**](https://github.com/Antux912012/mithrandir) is planned to be deprecated as development focus transitions to **Mithrandir-RS**. All future feature improvements, system integrations, and performance optimizations will be delivered in this Rust codebase.  
+> At a future milestone, Mithrandir-RS will graduate from its preview designation and be officially rebranded as either **Mithrandir** or **Radagast** 🧙‍♂️.
 
-**Mithrandir-RS** is an experimental, blazing-fast exploration rewriting the core of Mithrandir in **Rust** with **GTK4** and **Libadwaita**, focusing on native execution speed, instantaneous startup times, and minimal memory overhead.
+**Mithrandir-RS** is a blazing-fast, native system optimizer, deep cleaner, telemetry monitor, and hardware power saver written in **Rust** with **GTK4** and **Libadwaita**, engineered for instant startup, minimal memory footprint, and robust multi-distribution compatibility.
 
 Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mithrandir-RS explores native compiled speed while progressive feature parity with the main project is being developed.
 
@@ -167,6 +167,14 @@ make test
 
 ---
 
+## 🔮 Project Roadmap & Future Rebranding
+
+- **Deprecation of Standard Mithrandir**: The legacy Python/GTK4 version ([Mithrandir](https://github.com/Antux912012/mithrandir)) will be deprecated in favor of this native Rust implementation.
+- **Continuous Improvements**: Active feature development, deep hardware integrations, system cleaners, and package management will continue exclusively in Mithrandir-RS.
+- **Future Rebranding**: Once feature maturity and full stability are consolidated, this project will be officially rebranded as either **Mithrandir** or **Radagast** 🧙‍♂️.
+
+---
+
 ## 🔗 Related Projects
 
-- **[Mithrandir (Original Python / Libadwaita Edition)](https://github.com/Antux912012/mithrandir)**: The primary, production-ready GNU/Linux system cleaner, optimizer, telemetry, and diagnostics suite.
+- **[Mithrandir (Original Python / Libadwaita Edition)](https://github.com/Antux912012/mithrandir)**: The previous Python reference implementation (entering deprecation).
