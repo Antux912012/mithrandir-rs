@@ -231,3 +231,62 @@ fn test_quarantine_vault_cycle() {
 
     let _ = fs::remove_file(tmp_file);
 }
+
+#[test]
+fn test_tray_action_channel_dispatch() {
+    use mithrandir_rs::{MithrandirTray, TrayAction};
+    use ksni::Tray;
+
+    let (tx, rx) = async_channel::unbounded();
+    let mut tray = MithrandirTray::new(tx);
+
+    assert_eq!(tray.id(), "mithrandir-rs");
+    assert_eq!(tray.icon_name(), "mithrandir-status-symbolic");
+    assert_eq!(tray.category(), ksni::Category::SystemServices);
+
+    let pixmap = tray.icon_pixmap();
+    assert!(!pixmap.is_empty());
+    assert_eq!(pixmap[0].width, 16);
+    assert_eq!(pixmap[0].height, 16);
+    assert_eq!(pixmap[0].data.len(), 16 * 16 * 4);
+
+    // Test activate trigger
+    tray.activate(100, 200);
+    assert_eq!(rx.try_recv(), Ok(TrayAction::OpenMithrandir));
+
+    // Test menu item activation
+    let menu_items = tray.menu();
+    assert_eq!(menu_items.len(), 4); // RunSmartboost, OpenMithrandir, Separator, QuitMithrandir
+
+    if let ksni::MenuItem::Standard(item) = &menu_items[0] {
+        assert_eq!(item.label, "Run Smartboost");
+        (item.activate)(&mut tray);
+        assert_eq!(rx.try_recv(), Ok(TrayAction::RunSmartboost));
+    } else {
+        panic!("Expected StandardItem for Run Smartboost");
+    }
+
+    if let ksni::MenuItem::Standard(item) = &menu_items[1] {
+        assert_eq!(item.label, "Open Mithrandir");
+        (item.activate)(&mut tray);
+        assert_eq!(rx.try_recv(), Ok(TrayAction::OpenMithrandir));
+    } else {
+        panic!("Expected StandardItem for Open Mithrandir");
+    }
+
+    if let ksni::MenuItem::Standard(item) = &menu_items[3] {
+        assert_eq!(item.label, "Quit Mithrandir");
+        (item.activate)(&mut tray);
+        assert_eq!(rx.try_recv(), Ok(TrayAction::QuitMithrandir));
+    } else {
+        panic!("Expected StandardItem for Quit Mithrandir");
+    }
+}
+
+#[test]
+fn test_tray_smartboost_concurrency_lock() {
+    use mithrandir_rs::tray::MithrandirTray;
+
+    let res = MithrandirTray::execute_tray_smartboost();
+    assert!(res.is_some());
+}

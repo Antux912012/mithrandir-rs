@@ -214,6 +214,7 @@ impl MithrandirWindow {
         });
 
         // Handle window close request: hide to background
+        window.set_hide_on_close(true);
         window.connect_close_request(move |w| {
             w.set_visible(false);
             gtk4::glib::Propagation::Stop // Prevent window destruction, keep running in background!

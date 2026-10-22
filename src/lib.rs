@@ -1,8 +1,11 @@
 pub mod backend;
 pub mod ai;
+pub mod tray;
 
 #[cfg(feature = "gui")]
 pub mod ui;
+
+pub use tray::{MithrandirTray, TrayAction};
 
 pub use backend::{
     AntivirusEngine, AutostartManager, BackgroundDaemon, BatteryInfo, BtrfsManager, CleanCategory,

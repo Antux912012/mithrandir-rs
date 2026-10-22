@@ -48,7 +48,9 @@ fn main() {
         use libadwaita as adw;
         use adw::prelude::*;
 
-        let keep_alive = args.iter().any(|a| a == "--keep-alive");
+        let start_minimized = args
+            .iter()
+            .any(|a| a == "--background" || a == "--minimized" || a == "--keep-alive");
 
         // Start background optimization monitor thread (runs every 60s)
         std::thread::spawn(|| {
@@ -67,14 +69,74 @@ fn main() {
             let _ = mithrandir_rs::LocalLLMManager::stop_llamacpp_server();
         });
 
+        // Setup communication channel between tray thread and GTK4 main thread
+        let (tx, rx) = async_channel::unbounded();
+
+        // Spawn pure Rust StatusNotifierItem (SNI) + DBusMenu service (no GTK3 conflict)
+        if let Err(e) = mithrandir_rs::tray::MithrandirTray::spawn_service(tx) {
+            eprintln!("Warning: Failed to register system tray icon: {}", e);
+        }
+
+        // Hold guard keeps GApplication event loop active when all windows are hidden in background
+        let hold_guard = std::rc::Rc::new(std::cell::RefCell::new(None));
+        let hg_init = hold_guard.clone();
+
+        app.connect_startup(move |app| {
+            *hg_init.borrow_mut() = Some(app.hold());
+        });
+
         app.connect_activate(move |app| {
+            // Single-instance activation: restore existing window if already running
+            if let Some(existing_win) = app.windows().first() {
+                existing_win.set_visible(true);
+                existing_win.present();
+                return;
+            }
+
             let win = mithrandir_rs::ui::MithrandirWindow::build(app);
-            if !keep_alive {
+
+            let rx_channel = rx.clone();
+            let app_weak = app.downgrade();
+            let win_weak = win.downgrade();
+
+            gtk4::glib::spawn_future_local(async move {
+                while let Ok(action) = rx_channel.recv().await {
+                    match action {
+                        mithrandir_rs::TrayAction::RunSmartboost => {
+                            if let Some(res) = mithrandir_rs::tray::MithrandirTray::execute_tray_smartboost() {
+                                let body = format!(
+                                    "Reclaimed {:.1} MB RAM and freed {:.1} MB disk cache.",
+                                    res.ram_reclaimed_mb, res.disk_freed_mb
+                                );
+                                mithrandir_rs::NotificationManager::send_notification("⚡ Smart Boost", &body);
+                            }
+                        }
+                        mithrandir_rs::TrayAction::OpenMithrandir => {
+                            if let Some(w) = win_weak.upgrade() {
+                                w.set_visible(true);
+                                w.present();
+                            }
+                        }
+                        mithrandir_rs::TrayAction::QuitMithrandir => {
+                            if let Some(a) = app_weak.upgrade() {
+                                a.quit();
+                            }
+                        }
+                    }
+                }
+            });
+
+            if !start_minimized {
                 win.present();
             }
         });
 
-        app.run();
+        let filtered_args: Vec<String> = args
+            .into_iter()
+            .filter(|a| a != "--background" && a != "--minimized" && a != "--keep-alive")
+            .collect();
+
+        app.run_with_args(&filtered_args);
     }
 
     #[cfg(not(feature = "gui"))]
@@ -85,6 +147,7 @@ fn main() {
         println!("  mithrandir-rs --smart-boost   One-click RAM and cache boost");
         println!("  mithrandir-rs --monitor       Real-time system telemetry");
         println!("  mithrandir-rs --clean         Scan system clutter and cache");
+        println!("  mithrandir-rs --background    Launch hidden in background with panel tray icon");
         println!("  mithrandir-rs --keep-alive    Run background daemon on login");
     }
 }

@@ -51,7 +51,7 @@ cp -r %{_sourcedir}/data/icons/hicolor/* %{buildroot}%{_datadir}/icons/hicolor/
 %{_datadir}/applications/io.github.antonio.MithrandirRS.desktop
 %{_datadir}/glib-2.0/schemas/io.github.antonio.MithrandirRS.gschema.xml
 %{_datadir}/metainfo/io.github.antonio.MithrandirRS.metainfo.xml
-%{_datadir}/icons/hicolor/*/apps/io.github.antonio.MithrandirRS*.*
+%{_datadir}/icons/hicolor/*/*/*.*
 
 %changelog
 * Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.1-1

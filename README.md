@@ -42,6 +42,7 @@ Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mi
 | **Startup Applications** | Full | Desktop autostart management | ✅ Parity |
 | **Systemd Services Manager** | Full with unit logs | Unit inspection & control | ✅ Parity |
 | **Package Uninstaller** | APT, DNF, Pacman, Flatpak, Snap, pip | Multi-distro package management & uninstaller | ✅ Parity |
+| **System Tray & Background Mode** | AppIndicator (GTK3) | Pure Rust StatusNotifierItem (SNI) + DBusMenu (GTK4 clean, no GTK3 collision) | ✅ Parity |
 | **Anti-Malware (ClamAV)** | Full scanner & signatures | 1-Click Installer, FreshClam Lock Fix, Quarantine Vault | ✅ Parity |
 | **BTRFS Snapshots** | Automated snapshots & restore | Snapshot management & subvolumes | ✅ Parity |
 | **GRUB Bootloader** | Full timeout & kernel select | Timeout & boot configuration | ✅ Parity |
@@ -56,6 +57,18 @@ Mithrandir-RS includes dedicated compatibility support for Fedora and enterprise
 - **ClamAV Integration**: Automatic detection and installation of Fedora's `clamav`, `clamav-freshclam`, and `clamd` packages.
 - **Default Btrfs Snapshot Support**: Integrates directly with Fedora's default Btrfs subvolumes and snapshot management.
 - **Fedora-Aware Diagnostics**: Built-in AI diagnostic commands tailored for `dnf` and `systemd`.
+
+### 🛡️ System Tray & Background Architecture (GTK4 + Pure Rust D-Bus)
+
+Standard `libappindicator` links against GTK3 (`GtkMenu`), which causes fatal runtime symbol conflicts when loaded into a GTK4 process. Mithrandir-RS solves this natively:
+- **Pure Rust D-Bus SNI (`ksni`)**: Implements `org.kde.StatusNotifierItem` and `com.canonical.dbusmenu` entirely in Rust without GTK3 C bindings.
+- **Freedesktop Symbolic Icons**: 16x16 monochrome symbolic icon (`mithrandir-status-symbolic.svg`) with transparent background that automatically adapts to both dark and light desktop panels.
+- **Seamless Window Interception**: Closing the window hides it (`set_hide_on_close(true)`) while keeping the `GApplication` event loop active via `app.hold()`.
+- **Tray Menu Actions**:
+  1. **Run Smartboost**: Triggers RAM and disk cache reclamation with desktop notifications and re-entrancy locking.
+  2. **Open Mithrandir**: Restores and focuses the main Libadwaita window.
+  3. **Quit Mithrandir**: Cleanly shuts down background threads and exits the application.
+- **Autostart & Background Launch**: Pass `--background` or `--minimized` to initialize the app in the background without popping up the main window.
 
 ---
 
@@ -91,6 +104,9 @@ Mithrandir-RS can be run as a full Libadwaita GUI app or invoked directly from t
 ```bash
 # Launch the Libadwaita GUI
 mithrandir-rs
+
+# Launch minimized directly into the system tray / background
+mithrandir-rs --background
 
 # Perform instant one-click performance boost
 mithrandir-rs --smart-boost
