@@ -4,16 +4,18 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Mithrandir-RS</name>
-  <summary>Blazing-fast Linux system cleaner, real-time hardware telemetry, and AI diagnostics in Rust</summary>
+  <summary>Blazing-fast Linux system cleaner, real-time hardware telemetry, hardware power saver, and system tray integration in Rust</summary>
   <description>
     <p>
-      Mithrandir-RS is a high-performance system maintenance suite, cleaner, and diagnostic toolkit rewritten entirely in Rust with GTK4 and Libadwaita. It delivers instantaneous cleanup scans, deep cache pruning, and granular control over startup services and system processes without background resource overhead.
+      Mithrandir-RS is a high-performance system maintenance suite, cleaner, and diagnostic toolkit rewritten entirely in Rust with GTK4 and Libadwaita. It delivers instantaneous cleanup scans, deep cache pruning, hardware power management, and granular control over startup services and system processes without background resource overhead.
     </p>
     <p>
       Designed with a focus on safety and transparency, Mithrandir-RS protects critical operating system paths, features a quarantined ClamAV vault, and runs diagnostic telemetry off the main UI thread for completely stutter-free operation.
     </p>
     <ul>
       <li>High-Throughput Cleaner: Multi-threaded cleanup for package caches, thumbnails, application logs, and Flatpak runtimes</li>
+      <li>Hardware Power Saver: One-click CPU Turbo disabling, EPP power profiles, and PCIe ASPM deep power saving</li>
+      <li>Pure Rust System Tray: StatusNotifierItem and DBusMenu panel integration adapting automatically to Light/Dark desktop themes</li>
       <li>Zero-Sleep Real-Time Telemetry: Instant CPU delta calculation, dual GPU metrics, and battery health reporting</li>
       <li>Debounced Smart Boost: Safe one-click memory optimization and temporary file reclamation</li>
       <li>Quarantine Vault: Integrated ClamAV scanning with secure isolation for flagged files</li>
@@ -33,6 +35,19 @@
   </branding>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.4.2" date="2026-10-22">
+      <description>
+        <p>Mithrandir-RS v0.4.2 introduces native System Tray integration, Hardware Power Saver mode, and multi-distribution adaptability:</p>
+        <ul>
+          <li>Pure Rust StatusNotifierItem (SNI) and DBusMenu system tray panel icon without GTK3 runtime collisions.</li>
+          <li>Hardware Power Saver controller managing Intel P-State CPU Turbo Boost, CPU EPP policies, and PCIe ASPM powersupersave.</li>
+          <li>Bidirectional power saver state synchronization between the Libadwaita UI and desktop panel indicator.</li>
+          <li>Dynamic udev permissions generator enabling passwordless power management on wheel and sudo distros.</li>
+          <li>Cross-distribution auto-adaptation for Fedora, Debian, Ubuntu, Arch Linux, openSUSE, and NixOS.</li>
+          <li>Support for --background and --minimized autostart flags.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.1" date="2026-10-18">
       <description>
         <p>Release v0.4.1 with native Google Gemini AI Studio and Anthropic Claude support.</p>

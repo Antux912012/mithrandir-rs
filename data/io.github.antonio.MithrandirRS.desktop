@@ -1,14 +1,14 @@
 [Desktop Entry]
 Name=Mithrandir (Rust)
-GenericName=System Cleaner and Performance Optimizer
-Comment=Modern GNU/Linux Cleaner, Optimizer, Telemetry & Diagnostics in Rust
+GenericName=System Cleaner, Optimizer and Hardware Power Saver
+Comment=Modern GNU/Linux Cleaner, Optimizer, Hardware Power Saver, Telemetry & Diagnostics in Rust
 Exec=mithrandir-rs %U
 Icon=io.github.antonio.MithrandirRS
 Terminal=false
 Type=Application
 Categories=Utility;System;
 StartupNotify=true
-Actions=smart-boost;monitor;
+Actions=smart-boost;monitor;background;
 
 [Desktop Action smart-boost]
 Name=⚡ Smart Boost
@@ -17,3 +17,7 @@ Exec=mithrandir-rs --smart-boost
 [Desktop Action monitor]
 Name=📊 System Monitor
 Exec=mithrandir-rs --monitor
+
+[Desktop Action background]
+Name=🛡️ Start in System Tray
+Exec=mithrandir-rs --background

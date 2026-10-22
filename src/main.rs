@@ -175,7 +175,7 @@ fn main() {
 
     #[cfg(not(feature = "gui"))]
     {
-        println!("Mithrandir-RS v0.4.1 (GNU/Linux System Cleaner & Optimizer in Rust)");
+        println!("Mithrandir-RS v0.4.2 (GNU/Linux System Cleaner & Optimizer in Rust)");
         println!("Usage:");
         println!("  mithrandir-rs                 Launch Libadwaita GUI");
         println!("  mithrandir-rs --smart-boost   One-click RAM and cache boost");

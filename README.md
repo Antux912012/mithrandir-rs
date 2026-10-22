@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="#-installation"><img src="https://img.shields.io/badge/version-0.4.1--preview-orange.svg" alt="Version" /></a>
+  <a href="#-installation"><img src="https://img.shields.io/badge/version-0.4.2--preview-orange.svg" alt="Version" /></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://gtk.org/"><img src="https://img.shields.io/badge/GUI-GTK%204%20%7C%20Libadwaita-brightgreen.svg" alt="GTK4 & Libadwaita" /></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.80%2B-informational.svg" alt="Rust 1.80+" /></a>
@@ -28,6 +28,13 @@
 **Mithrandir-RS** is an experimental, blazing-fast exploration rewriting the core of Mithrandir in **Rust** with **GTK4** and **Libadwaita**, focusing on native execution speed, instantaneous startup times, and minimal memory overhead.
 
 Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mithrandir-RS explores native compiled speed while progressive feature parity with the main project is being developed.
+
+> [!NOTE]
+> **What's New in v0.4.2:**
+> - 🛡️ **Pure Rust System Tray & Background Daemon**: StatusNotifierItem (SNI) & DBusMenu implementation via `ksni` with zero GTK3 runtime collisions.
+> - ⚡ **Hardware Power Saver Mode**: Bidirectional control over Intel P-State CPU Turbo (`no_turbo`), CPU EPP profiles, and PCIe ASPM deep powersaving synced with the desktop panel.
+> - 🎩 **Cross-Distribution Packaging**: Standalone packages for Fedora/RHEL (`.rpm`), Debian/Ubuntu (`.deb`), Arch Linux (`AUR / PKGBUILD`), and universal Flatpak (`.flatpak`).
+> - ⚙️ **Passwordless Udev Rules**: Automatic rule generator for unprivileged power switching (`wheel` on Fedora/Arch, `sudo` on Debian/Ubuntu).
 
 ---
 
@@ -88,17 +95,17 @@ Pre-built standalone packages are ready in the repository root:
 
 ### Debian / Ubuntu (`.deb`)
 ```bash
-sudo dpkg -i mithrandir-rs_0.4.1_amd64.deb
+sudo dpkg -i mithrandir-rs_0.4.2_amd64.deb
 ```
 
 ### Fedora / RHEL (`.rpm`)
 ```bash
-sudo dnf install ./mithrandir-rs_0.4.1_x86_64.rpm
+sudo dnf install ./mithrandir-rs_0.4.2_x86_64.rpm
 ```
 
 ### Flatpak Bundle (`.flatpak`)
 ```bash
-flatpak install --user mithrandir-rs_0.4.1.flatpak
+flatpak install --user mithrandir-rs_0.4.2.flatpak
 ```
 Run via Flatpak:
 ```bash

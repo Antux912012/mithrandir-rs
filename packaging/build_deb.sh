@@ -43,6 +43,7 @@ mkdir -p "${PKG_DIR}/lib/udev/rules.d"
 echo "==> Staging Debian package files..."
 cp "${ROOT_DIR}/packaging/debian/control" "${PKG_DIR}/DEBIAN/control"
 sed -i "s/^Version:.*/Version: ${VERSION}/" "${PKG_DIR}/DEBIAN/control"
+install -m 755 "${ROOT_DIR}/packaging/debian/postinst" "${PKG_DIR}/DEBIAN/postinst"
 
 install -m 755 "${ROOT_DIR}/target-debian/release/mithrandir-rs" "${PKG_DIR}/usr/bin/mithrandir-rs"
 install -m 644 "${ROOT_DIR}/data/io.github.antonio.MithrandirRS.desktop" "${PKG_DIR}/usr/share/applications/io.github.antonio.MithrandirRS.desktop"

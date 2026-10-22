@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "configure" ]; then
+    echo "================================================================================"
+    echo "  Mithrandir-RS v0.4.2 installed successfully! 🦀"
+    echo "  Native GTK4 & Libadwaita GNU/Linux Optimizer, Deep Cleaner & Hardware Power Saver"
+    echo "================================================================================"
+    echo "  * Launch the GUI:               mithrandir-rs"
+    echo "  * Start in Panel System Tray:   mithrandir-rs --background"
+    echo "  * Hardware Power Saver rules:   /lib/udev/rules.d/99-mithrandir-power.rules"
+    echo "================================================================================"
+
+    if command -v glib-compile-schemas >/dev/null 2>&1; then
+        glib-compile-schemas /usr/share/glib-2.0/schemas/ || true
+    fi
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database || true
+    fi
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+    fi
+fi
+
+exit 0

@@ -1,7 +1,7 @@
 Name:           mithrandir-rs
-Version:        0.4.1
+Version:        0.4.2
 Release:        1%{?dist}
-Summary:        Modern GNU/Linux System Cleaner, Optimizer, Telemetry & Diagnostics in Rust
+Summary:        Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Hardware Power Saver in Rust
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/Antux912012/mithrandir-rs
@@ -14,8 +14,10 @@ Recommends:     papirus-icon-theme
 %description
 Mithrandir-RS is a blazing-fast, Libadwaita-based GNU/Linux maintenance utility
 written in Rust. Features include instant one-click Smart Boost, real-time hardware
-and memory telemetry, multi-threaded cache cleaner, process manager, systemd services
-controller, package uninstaller, anti-malware quarantine vault, and local/cloud AI diagnostics.
+and memory telemetry, multi-threaded cache cleaner, hardware power saver mode
+(Intel P-State CPU Turbo/EPP & PCIe ASPM), pure Rust D-Bus system tray panel icon,
+process manager, systemd services controller, package uninstaller, anti-malware
+quarantine vault, and local/cloud AI diagnostics.
 
 %prep
 # No-op: staged from pre-built artifacts in build_rpm.sh
@@ -42,6 +44,9 @@ cp -r %{_sourcedir}/data/icons/hicolor/* %{buildroot}%{_datadir}/icons/hicolor/
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 /usr/bin/update-desktop-database &> /dev/null || :
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &> /dev/null || :
+echo "==> Mithrandir-RS v0.4.2 installed successfully!"
+echo "==> Native GTK4/Libadwaita System Optimizer, Cleaner & Hardware Power Saver."
+echo "==> Launch with 'mithrandir-rs' or start in system tray with 'mithrandir-rs --background'."
 
 %postun
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
@@ -57,5 +62,7 @@ cp -r %{_sourcedir}/data/icons/hicolor/* %{buildroot}%{_datadir}/icons/hicolor/
 %{_datadir}/icons/hicolor/*/*/*.*
 
 %changelog
+* Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.2-1
+- Release 0.4.2: Hardware Power Saver, pure Rust D-Bus system tray, and multi-distro adaptability.
 * Thu Oct 22 2026 Antonio <antonio@localhost> - 0.4.1-1
 - Release 0.4.1: Native Fedora RPM packaging and full multi-distro compatibility.

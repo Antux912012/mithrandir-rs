@@ -1,8 +1,9 @@
 pkgbase = mithrandir-rs
-	pkgdesc = Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Performance Booster in Rust
-	pkgver = 0.4.1
+	pkgdesc = Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Hardware Power Saver in Rust
+	pkgver = 0.4.2
 	pkgrel = 1
 	url = https://github.com/Antux912012/mithrandir-rs
+	install = mithrandir-rs.install
 	arch = x86_64
 	license = GPL-3.0-or-later
 	makedepends = cargo
@@ -15,7 +16,7 @@ pkgbase = mithrandir-rs
 	optdepends = clamav: Anti-malware scanning and signature updates
 	optdepends = btrfs-progs: BTRFS subvolume and snapshot management
 	optdepends = papirus-icon-theme: Recommended icon theme
-	source = mithrandir-rs-0.4.1.tar.gz::https://github.com/Antux912012/mithrandir-rs/archive/refs/tags/v0.4.1.tar.gz
+	source = mithrandir-rs-0.4.2.tar.gz::https://github.com/Antux912012/mithrandir-rs/archive/refs/tags/v0.4.2.tar.gz
 	sha256sums = SKIP
 
 pkgname = mithrandir-rs

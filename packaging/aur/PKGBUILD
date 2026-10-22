@@ -1,11 +1,12 @@
 # Maintainer: Antonio <antonio@localhost>
 pkgname=mithrandir-rs
-pkgver=0.4.1
+pkgver=0.4.2
 pkgrel=1
-pkgdesc="Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Performance Booster in Rust"
+pkgdesc="Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Hardware Power Saver in Rust"
 arch=('x86_64')
 url="https://github.com/Antux912012/mithrandir-rs"
 license=('GPL-3.0-or-later')
+install=mithrandir-rs.install
 depends=(
     'gtk4'
     'libadwaita'
