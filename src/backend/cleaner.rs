@@ -101,7 +101,7 @@ impl CleanerEngine {
             ("browser_cache", "Web Browser Caches", "Firefox, Chrome, Chromium, Brave, and Edge caches", home_p.join(".cache/mozilla")),
             ("stremio_cache", "Stremio Streaming Cache", "Torrent parts and media stream cache", home_p.join(".config/stremio/stremio-cache")),
             ("dev_cache", "Developer & Package Caches", "Pip, Cargo, and npm package cache directories", home_p.join(".cache/pip")),
-            ("flatpak_cache", "Flatpak Applications Cache", "Application data in ~/.var/app", home_p.join(".var/app")),
+            ("flatpak_cache", "Flatpak Applications Cache", "Safe application caches in ~/.var/app/*/cache (preserves configs, profiles & running apps)", home_p.join(".var/app")),
             ("snap_cache", "Snap Package Cache", "Snap cache data in ~/snap", home_p.join("snap")),
             ("trash", "Trash Bin", "Deleted files in user Trash", home_p.join(".local/share/Trash")),
             ("tmp", "Temporary Files", "Volatile user files in /tmp", PathBuf::from("/tmp")),
@@ -126,6 +126,8 @@ impl CleanerEngine {
                     let (s2, c2) = Self::scan_path(&home_ref.join(".npm/_cacache"));
                     let (s3, c3) = Self::scan_path(&home_ref.join(".cargo/registry/cache"));
                     (s1 + s2 + s3, c1 + c2 + c3)
+                } else if id == "flatpak_cache" {
+                    crate::cleaners::scan_flatpak_cache(&path)
                 } else if id == "package_cache" {
                     let mut total_s = 0;
                     let mut total_c = 0;
@@ -290,7 +292,7 @@ impl CleanerEngine {
                 let (b3, c3) = Self::clean_path(&home_p.join(".cargo/registry/cache"));
                 (b1 + b2 + b3, c1 + c2 + c3)
             }
-            "flatpak_cache" => Self::clean_path(&home_p.join(".var/app")),
+            "flatpak_cache" => crate::cleaners::clean_flatpak_cache(&home_p.join(".var/app")),
             "snap_cache" => Self::clean_path(&home_p.join("snap")),
             "trash" => Self::clean_path(&home_p.join(".local/share/Trash")),
             "tmp" => Self::clean_user_tmp(),
