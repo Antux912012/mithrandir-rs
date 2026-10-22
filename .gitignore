@@ -1,4 +1,5 @@
 /target
+/target-debian
 .flatpak-builder/
 build-dir-rs/
 repo-rs/
