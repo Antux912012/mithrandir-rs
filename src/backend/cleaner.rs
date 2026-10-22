@@ -72,6 +72,18 @@ impl CleanerEngine {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         let home_p = PathBuf::from(&home);
 
+        let pkg_cache_path = if Path::new("/var/cache/libdnf5").exists() {
+            PathBuf::from("/var/cache/libdnf5")
+        } else if Path::new("/var/cache/dnf").exists() {
+            PathBuf::from("/var/cache/dnf")
+        } else if Path::new("/var/cache/apt/archives").exists() {
+            PathBuf::from("/var/cache/apt/archives")
+        } else if Path::new("/var/cache/pacman/pkg").exists() {
+            PathBuf::from("/var/cache/pacman/pkg")
+        } else {
+            PathBuf::from("/var/cache")
+        };
+
         let cats = [
             ("thumbnails", "Thumbnail Cache", "Cached image and video thumbnails", home_p.join(".cache/thumbnails")),
             ("user_cache", "User Application Cache", "Application cache files in ~/.cache", home_p.join(".cache")),
@@ -82,7 +94,7 @@ impl CleanerEngine {
             ("snap_cache", "Snap Package Cache", "Snap cache data in ~/snap", home_p.join("snap")),
             ("trash", "Trash Bin", "Deleted files in user Trash", home_p.join(".local/share/Trash")),
             ("tmp", "Temporary Files", "Volatile user files in /tmp", PathBuf::from("/tmp")),
-            ("package_cache", "Package Manager Cache", "Cached APT, DNF, or Pacman package archives", PathBuf::from("/var/cache/apt/archives")),
+            ("package_cache", "Package Manager Cache", "Cached APT, DNF, or Pacman package archives", pkg_cache_path),
         ];
 
         for (id, name, desc, path) in cats {
@@ -98,6 +110,18 @@ impl CleanerEngine {
                 let (s2, c2) = Self::scan_path(&home_p.join(".npm/_cacache"));
                 let (s3, c3) = Self::scan_path(&home_p.join(".cargo/registry/cache"));
                 (s1 + s2 + s3, c1 + c2 + c3)
+            } else if id == "package_cache" {
+                let mut total_s = 0;
+                let mut total_c = 0;
+                for p in &["/var/cache/libdnf5", "/var/cache/dnf", "/var/cache/apt/archives", "/var/cache/pacman/pkg"] {
+                    let pb = Path::new(p);
+                    if pb.exists() {
+                        let (s, c) = Self::scan_path(pb);
+                        total_s += s;
+                        total_c += c;
+                    }
+                }
+                (total_s, total_c)
             } else {
                 Self::scan_path(&path)
             };

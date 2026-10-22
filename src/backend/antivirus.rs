@@ -111,10 +111,12 @@ impl AntivirusEngine {
     {
         // Resolve /var/log/clamav/freshclam.log lock contention by stopping service temporarily
         let script = "systemctl stop clamav-freshclam 2>/dev/null || true; \
+                      systemctl stop freshclam 2>/dev/null || true; \
                       pkill -f freshclam 2>/dev/null || true; \
-                      rm -f /var/log/clamav/freshclam.log.lock 2>/dev/null || true; \
+                      rm -f /var/log/clamav/freshclam.log.lock /var/log/freshclam.log.lock 2>/dev/null || true; \
                       freshclam; \
-                      systemctl start clamav-freshclam 2>/dev/null || true";
+                      systemctl start clamav-freshclam 2>/dev/null || true; \
+                      systemctl start freshclam 2>/dev/null || true";
 
         HostBridge::spawn_streaming("sh", &["-c", script], true, on_line)
     }

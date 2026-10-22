@@ -7,6 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
+use crate::backend::distro::{DistroDetector, DistroFamily};
 use crate::backend::host_bridge::HostBridge;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -472,8 +473,13 @@ impl BuiltinLinuxAssistant {
             return "Display all open listening TCP/UDP ports and associated process names:\n\nPROPOSED_COMMAND: ss -tulnp".to_string();
         }
 
-        if query.contains("package") || query.contains("broken") || query.contains("apt") {
-            return "Configure partially installed packages and fix broken dependencies:\n\nPROPOSED_COMMAND: dpkg --configure -a && apt-get install -f -y".to_string();
+        if query.contains("package") || query.contains("broken") || query.contains("apt") || query.contains("dnf") {
+            let distro = DistroDetector::detect();
+            return match distro.family {
+                DistroFamily::Fedora => "Verify package integrity and synchronize distribution dependencies:\n\nPROPOSED_COMMAND: dnf check && dnf distro-sync -y".to_string(),
+                DistroFamily::Arch => "Re-synchronize package database and resolve package conflicts:\n\nPROPOSED_COMMAND: pacman -Syu".to_string(),
+                _ => "Configure partially installed packages and fix broken dependencies:\n\nPROPOSED_COMMAND: dpkg --configure -a && apt-get install -f -y".to_string(),
+            };
         }
 
         if query.contains("boot") || query.contains("slow") || query.contains("systemd") {

@@ -78,11 +78,11 @@ impl DistroDetector {
         let info = Self::detect();
         match info.family {
             DistroFamily::Debian => ("sh", vec!["-c", "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y clamav clamav-daemon clamav-freshclam"]),
-            DistroFamily::Fedora => ("dnf", vec!["install", "-y", "clamav", "clamav-update", "clamd"]),
+            DistroFamily::Fedora => ("dnf", vec!["install", "-y", "clamav", "clamav-freshclam", "clamd"]),
             DistroFamily::Arch => ("pacman", vec!["-Sy", "--noconfirm", "clamav"]),
             DistroFamily::Suse => ("zypper", vec!["--non-interactive", "install", "clamav"]),
             DistroFamily::Alpine => ("apk", vec!["add", "clamav", "clamav-libunrar"]),
-            DistroFamily::Unknown => ("sh", vec!["-c", "apt-get update && apt-get install -y clamav clamav-freshclam || dnf install -y clamav clamav-update || pacman -Sy --noconfirm clamav"]),
+            DistroFamily::Unknown => ("sh", vec!["-c", "apt-get update && apt-get install -y clamav clamav-freshclam || dnf install -y clamav clamav-freshclam || pacman -Sy --noconfirm clamav"]),
         }
     }
 }

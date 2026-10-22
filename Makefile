@@ -1,6 +1,6 @@
-.PHONY: all build test check clean deb flatpak publish
+.PHONY: all build test check clean deb rpm flatpak publish
 
-all: build deb flatpak
+all: build deb rpm flatpak
 
 build:
 	flatpak run --user --devel --share=network --filesystem=home --command=sh org.gnome.Sdk//50 -c \
@@ -17,6 +17,9 @@ test:
 deb:
 	./packaging/build_deb.sh
 
+rpm:
+	./packaging/build_rpm.sh
+
 flatpak:
 	./packaging/build_flatpak.sh
 
@@ -25,4 +28,4 @@ publish:
 
 clean:
 	cargo clean
-	rm -rf build-dir-rs repo-rs target/pkg-deb .flatpak-builder
+	rm -rf build-dir-rs repo-rs target/pkg-deb target/pkg-rpm .flatpak-builder

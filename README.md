@@ -57,6 +57,11 @@ Pre-built standalone packages are ready in the repository root:
 sudo dpkg -i mithrandir-rs_0.4.1_amd64.deb
 ```
 
+### Fedora / RHEL (`.rpm`)
+```bash
+sudo dnf install ./mithrandir-rs_0.4.1_x86_64.rpm
+```
+
 ### Flatpak Bundle (`.flatpak`)
 ```bash
 flatpak install --user mithrandir-rs_0.4.1.flatpak
@@ -92,8 +97,11 @@ mithrandir-rs --clean
 
 ### Quick Build with Makefile
 ```bash
-# Build both .deb and .flatpak packages
+# Build .deb, .rpm, and .flatpak packages
 make all
+
+# Build only the Fedora RPM package
+make rpm
 
 # Build only the Debian package
 make deb

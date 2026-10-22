@@ -298,7 +298,7 @@ impl AIPage {
             ("Find Large Files", "Find files over 100MB in my home directory"),
             ("Diagnose Memory", "Analyze high RAM and memory pressure"),
             ("Check Open Ports", "Check open network listening ports and sockets"),
-            ("Fix Broken Packages", "Fix broken apt and dpkg package configuration"),
+            ("Fix Broken Packages", "Fix broken packages and package manager configuration"),
             ("Slow Boot Analysis", "Analyze slow boot time and systemd startup services"),
         ];
 

@@ -42,7 +42,7 @@ impl GrubManager {
         let script = format!(
             "sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT={}/' /etc/default/grub && \
              sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=\"{}\"/' /etc/default/grub && \
-             (update-grub || grub2-mkconfig -o /boot/grub/grub.cfg)",
+             (update-grub || grub2-mkconfig -o /boot/grub2/grub.cfg || grub2-mkconfig -o /boot/grub/grub.cfg || grub-mkconfig -o /boot/grub/grub.cfg)",
             timeout, default_entry
         );
 
