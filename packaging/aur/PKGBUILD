@@ -1,0 +1,64 @@
+# Maintainer: Antonio <antonio@localhost>
+pkgname=mithrandir-rs
+pkgver=0.4.1
+pkgrel=1
+pkgdesc="Native GTK4 & Libadwaita GNU/Linux System Optimizer, Deep Cleaner, and Performance Booster in Rust"
+arch=('x86_64')
+url="https://github.com/Antux912012/mithrandir-rs"
+license=('GPL-3.0-or-later')
+depends=(
+    'gtk4'
+    'libadwaita'
+    'glib2'
+    'polkit'
+    'hicolor-icon-theme'
+)
+makedepends=(
+    'cargo'
+    'git'
+)
+optdepends=(
+    'clamav: Anti-malware scanning and signature updates'
+    'btrfs-progs: BTRFS subvolume and snapshot management'
+    'papirus-icon-theme: Recommended icon theme'
+)
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/Antux912012/${pkgname}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV 2>/dev/null | sed -n 's/host: //p' || echo 'x86_64-unknown-linux-gnu')" 2>/dev/null || cargo fetch
+}
+
+build() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release --features gui 2>/dev/null || cargo build --release --features gui
+}
+
+check() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen 2>/dev/null || cargo test
+}
+
+package() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+
+    # Install executable binary
+    install -Dm755 target/release/mithrandir-rs "${pkgdir}/usr/bin/mithrandir-rs"
+
+    # Install desktop launcher, schema, and AppStream metainfo
+    install -Dm644 data/io.github.antonio.MithrandirRS.desktop "${pkgdir}/usr/share/applications/io.github.antonio.MithrandirRS.desktop"
+    install -Dm644 data/io.github.antonio.MithrandirRS.gschema.xml "${pkgdir}/usr/share/glib-2.0/schemas/io.github.antonio.MithrandirRS.gschema.xml"
+    install -Dm644 data/io.github.antonio.MithrandirRS.metainfo.xml "${pkgdir}/usr/share/metainfo/io.github.antonio.MithrandirRS.metainfo.xml"
+
+    # Install udev hardware power management rules
+    install -Dm644 data/99-mithrandir-power.rules "${pkgdir}/usr/lib/udev/rules.d/99-mithrandir-power.rules"
+
+    # Install hicolor icons including symbolic status icon
+    mkdir -p "${pkgdir}/usr/share/icons/hicolor"
+    cp -r data/icons/hicolor/* "${pkgdir}/usr/share/icons/hicolor/"
+}

@@ -1,6 +1,6 @@
-.PHONY: all build test check clean deb rpm flatpak publish
+.PHONY: all build test check clean deb rpm flatpak aur publish
 
-all: build deb rpm flatpak
+all: build deb rpm flatpak aur
 
 build:
 	flatpak run --user --devel --share=network --filesystem=home --command=sh org.gnome.Sdk//50 -c \
@@ -23,9 +23,12 @@ rpm:
 flatpak:
 	./packaging/build_flatpak.sh
 
+aur:
+	@echo "==> AUR PKGBUILD is ready in packaging/aur/PKGBUILD"
+
 publish:
 	./packaging/publish_github.sh
 
 clean:
 	cargo clean
-	rm -rf build-dir-rs repo-rs target/pkg-deb target/pkg-rpm .flatpak-builder
+	rm -rf build-dir-rs repo-rs target/pkg-deb target/pkg-rpm target/pkg-flatpak target/repo-flatpak .flatpak-builder

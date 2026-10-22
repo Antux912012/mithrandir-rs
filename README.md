@@ -105,6 +105,14 @@ Run via Flatpak:
 flatpak run io.github.antonio.MithrandirRS
 ```
 
+### Arch Linux / CachyOS (AUR)
+```bash
+# Using an AUR helper
+yay -S mithrandir-rs
+# Or building manually from packaging/aur
+cd packaging/aur && makepkg -si
+```
+
 ---
 
 ## 🚀 CLI Usage
