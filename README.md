@@ -14,6 +14,7 @@
   <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg" alt="License: GPL-3.0-or-later" /></a>
   <a href="https://gtk.org/"><img src="https://img.shields.io/badge/GUI-GTK%204%20%7C%20Libadwaita-brightgreen.svg" alt="GTK4 & Libadwaita" /></a>
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-1.80%2B-informational.svg" alt="Rust 1.80+" /></a>
+  <a href="https://getfedora.org/"><img src="https://img.shields.io/badge/Fedora-Compatible-51A2DA?logo=fedora&logoColor=white" alt="Fedora Compatible" /></a>
   <a href="https://github.com/Antux912012/mithrandir-rs"><img src="https://img.shields.io/badge/Platform-GNU%2FLinux-orange.svg" alt="Platform" /></a>
 </p>
 
@@ -45,6 +46,16 @@ Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mi
 | **BTRFS Snapshots** | Automated snapshots & restore | Snapshot management & subvolumes | ✅ Parity |
 | **GRUB Bootloader** | Full timeout & kernel select | Timeout & boot configuration | ✅ Parity |
 | **AI Diagnostics & Local LLM** | Ollama, NIM, OpenAI, in-app Qwen | Built-in offline assistant, Qwen 2.5 + llama.cpp engine | ✅ Parity |
+
+### 🎩 Fedora & RHEL Compatibility Highlights
+
+Mithrandir-RS includes dedicated compatibility support for Fedora and enterprise Red Hat derivatives:
+- **Native `.rpm` Packaging**: Pre-built standalone `.rpm` packages and built-in `make rpm` target using `rpmbuild`.
+- **Package Manager Cache Cleaner**: Scans and cleans both `/var/cache/libdnf5` and `/var/cache/dnf` caches.
+- **Fedora GRUB2 Support**: Full support for Fedora's `/boot/grub2/grub.cfg` configuration scheme.
+- **ClamAV Integration**: Automatic detection and installation of Fedora's `clamav`, `clamav-freshclam`, and `clamd` packages.
+- **Default Btrfs Snapshot Support**: Integrates directly with Fedora's default Btrfs subvolumes and snapshot management.
+- **Fedora-Aware Diagnostics**: Built-in AI diagnostic commands tailored for `dnf` and `systemd`.
 
 ---
 
