@@ -1,0 +1,4 @@
+# Mithrandir-RS Hardware Power Saver permissions
+# Allows passwordless unprivileged power mode toggling for users in 'wheel' or 'sudo' groups
+SUBSYSTEM=="cpu", ACTION=="add", RUN+="/bin/sh -c '(chgrp -R wheel /sys/devices/system/cpu/intel_pstate /sys/devices/system/cpu/cpu*/cpufreq 2>/dev/null || chgrp -R sudo /sys/devices/system/cpu/intel_pstate /sys/devices/system/cpu/cpu*/cpufreq 2>/dev/null) && chmod -R g+w /sys/devices/system/cpu/intel_pstate /sys/devices/system/cpu/cpu*/cpufreq'"
+SUBSYSTEM=="module", KERNEL=="pcie_aspm", ACTION=="add", RUN+="/bin/sh -c '(chgrp wheel /sys/module/pcie_aspm/parameters/policy 2>/dev/null || chgrp sudo /sys/module/pcie_aspm/parameters/policy 2>/dev/null) && chmod g+w /sys/module/pcie_aspm/parameters/policy'"

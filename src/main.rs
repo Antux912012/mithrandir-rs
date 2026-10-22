@@ -69,12 +69,21 @@ fn main() {
             let _ = mithrandir_rs::LocalLLMManager::stop_llamacpp_server();
         });
 
+        // Query initial power saver state and create thread-safe shared flag
+        let initial_power_saver = mithrandir_rs::PowerManager::is_power_saver_active();
+        let power_saver_arc = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(initial_power_saver));
+
         // Setup communication channel between tray thread and GTK4 main thread
         let (tx, rx) = async_channel::unbounded();
 
         // Spawn pure Rust StatusNotifierItem (SNI) + DBusMenu service (no GTK3 conflict)
-        if let Err(e) = mithrandir_rs::tray::MithrandirTray::spawn_service(tx) {
-            eprintln!("Warning: Failed to register system tray icon: {}", e);
+        match mithrandir_rs::tray::MithrandirTray::spawn_service(tx, power_saver_arc.clone()) {
+            Ok(handle) => {
+                mithrandir_rs::tray::register_tray_handle(handle);
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to register system tray icon: {}", e);
+            }
         }
 
         // Hold guard keeps GApplication event loop active when all windows are hidden in background
@@ -84,6 +93,8 @@ fn main() {
         app.connect_startup(move |app| {
             *hg_init.borrow_mut() = Some(app.hold());
         });
+
+        let ps_arc_action = power_saver_arc.clone();
 
         app.connect_activate(move |app| {
             // Single-instance activation: restore existing window if already running
@@ -98,6 +109,7 @@ fn main() {
             let rx_channel = rx.clone();
             let app_weak = app.downgrade();
             let win_weak = win.downgrade();
+            let ps_arc = ps_arc_action.clone();
 
             gtk4::glib::spawn_future_local(async move {
                 while let Ok(action) = rx_channel.recv().await {
@@ -109,6 +121,28 @@ fn main() {
                                     res.ram_reclaimed_mb, res.disk_freed_mb
                                 );
                                 mithrandir_rs::NotificationManager::send_notification("⚡ Smart Boost", &body);
+                            }
+                        }
+                        mithrandir_rs::TrayAction::TogglePowerSaver(enable) => {
+                            let res = mithrandir_rs::PowerManager::set_power_saver(enable);
+                            match res {
+                                Ok(_) => {
+                                    let body = if enable {
+                                        "Hardware Power Saver Enabled (Turbo Disabled, EPP Power, PCIe ASPM Powersupersave)"
+                                    } else {
+                                        "Hardware Power Saver Disabled (Performance Restored)"
+                                    };
+                                    mithrandir_rs::NotificationManager::send_notification("⚡ Power Management", body);
+                                    mithrandir_rs::ui::DashboardPage::update_ui_power_saver(enable);
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to toggle power saver: {}", e);
+                                    ps_arc.store(!enable, std::sync::atomic::Ordering::SeqCst);
+                                    mithrandir_rs::tray::sync_tray_power_saver(!enable);
+                                    mithrandir_rs::ui::DashboardPage::update_ui_power_saver(!enable);
+                                    let err_msg = format!("Failed to change power profile: {}", e);
+                                    mithrandir_rs::NotificationManager::send_notification("⚠️ Power Saver Error", &err_msg);
+                                }
                             }
                         }
                         mithrandir_rs::TrayAction::OpenMithrandir => {

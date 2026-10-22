@@ -1,11 +1,15 @@
 pub mod backend;
 pub mod ai;
 pub mod tray;
+pub mod power;
+pub mod os_info;
 
 #[cfg(feature = "gui")]
 pub mod ui;
 
 pub use tray::{MithrandirTray, TrayAction};
+pub use power::PowerManager;
+pub use os_info::{detect_os, get_admin_group, LinuxDistro, OsDetails};
 
 pub use backend::{
     AntivirusEngine, AutostartManager, BackgroundDaemon, BatteryInfo, BtrfsManager, CleanCategory,

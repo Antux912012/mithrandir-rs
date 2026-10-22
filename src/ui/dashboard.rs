@@ -110,9 +110,22 @@ impl MetricTile {
     }
 }
 
+thread_local! {
+    static POWER_SWITCH_ROW: std::cell::RefCell<Option<SwitchRow>> = std::cell::RefCell::new(None);
+}
+
 pub struct DashboardPage;
 
 impl DashboardPage {
+    pub fn update_ui_power_saver(active: bool) {
+        POWER_SWITCH_ROW.with(|cell| {
+            if let Some(ref row) = *cell.borrow() {
+                if row.is_active() != active {
+                    row.set_active(active);
+                }
+            }
+        });
+    }
     fn create_info_row(title: &str, subtitle: &str, icon_name: &str) -> ActionRow {
         let row = ActionRow::builder()
             .title(title)
@@ -358,7 +371,46 @@ impl DashboardPage {
         tile_group.add(&flow_box);
         root_box.append(&tile_group);
 
-        // 3. System Information on Two Columns
+        // 3. Hardware & Power Management
+        let power_group = PreferencesGroup::builder()
+            .title("Hardware & Power Management")
+            .description("Hardware-level power saving policies for CPU and PCIe bus")
+            .build();
+
+        let is_nixos = crate::os_info::detect_os().distro == crate::os_info::LinuxDistro::NixOS
+            || crate::os_info::is_immutable_system();
+
+        if is_nixos {
+            let nix_banner = adw::Banner::builder()
+                .title("NixOS detected: Please enable power saver services in your configuration.nix")
+                .revealed(true)
+                .build();
+            power_group.add(&nix_banner);
+        }
+
+        let power_saver_row = SwitchRow::builder()
+            .title("Battery Power Saver")
+            .subtitle("Disable CPU Turbo Boost (intel_pstate), set EPP to power, and enable PCIe ASPM powersupersave")
+            .active(crate::power::PowerManager::is_power_saver_active())
+            .build();
+        power_saver_row.add_prefix(&Image::from_icon_name("battery-symbolic"));
+
+        power_saver_row.connect_active_notify(move |row| {
+            let active = row.is_active();
+            if crate::power::PowerManager::is_power_saver_active() != active {
+                let _ = crate::power::PowerManager::set_power_saver(active);
+                crate::tray::sync_tray_power_saver(active);
+            }
+        });
+
+        POWER_SWITCH_ROW.with(|cell| {
+            *cell.borrow_mut() = Some(power_saver_row.clone());
+        });
+
+        power_group.add(&power_saver_row);
+        root_box.append(&power_group);
+
+        // 4. System Information on Two Columns
         let sys_group = PreferencesGroup::builder()
             .title("System Information")
             .description("Host configuration and hardware overview")

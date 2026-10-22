@@ -43,6 +43,7 @@ Differentiated by its distinctive **Rust Terracotta `#B7410E`** visual theme, Mi
 | **Systemd Services Manager** | Full with unit logs | Unit inspection & control | ✅ Parity |
 | **Package Uninstaller** | APT, DNF, Pacman, Flatpak, Snap, pip | Multi-distro package management & uninstaller | ✅ Parity |
 | **System Tray & Background Mode** | AppIndicator (GTK3) | Pure Rust StatusNotifierItem (SNI) + DBusMenu (GTK4 clean, no GTK3 collision) | ✅ Parity |
+| **Hardware Power Saver** | TLP / Power Profiles | Hardware CPU Turbo/EPP + PCIe ASPM Powersupersave & Tray Sync | ✅ Parity |
 | **Anti-Malware (ClamAV)** | Full scanner & signatures | 1-Click Installer, FreshClam Lock Fix, Quarantine Vault | ✅ Parity |
 | **BTRFS Snapshots** | Automated snapshots & restore | Snapshot management & subvolumes | ✅ Parity |
 | **GRUB Bootloader** | Full timeout & kernel select | Timeout & boot configuration | ✅ Parity |
@@ -66,9 +67,18 @@ Standard `libappindicator` links against GTK3 (`GtkMenu`), which causes fatal ru
 - **Seamless Window Interception**: Closing the window hides it (`set_hide_on_close(true)`) while keeping the `GApplication` event loop active via `app.hold()`.
 - **Tray Menu Actions**:
   1. **Run Smartboost**: Triggers RAM and disk cache reclamation with desktop notifications and re-entrancy locking.
-  2. **Open Mithrandir**: Restores and focuses the main Libadwaita window.
-  3. **Quit Mithrandir**: Cleanly shuts down background threads and exits the application.
+  2. **Battery Power Saver**: Hardware-level power optimization toggle synced bidirectionally between the GTK4 UI and panel menu.
+  3. **Open Mithrandir**: Restores and focuses the main Libadwaita window.
+  4. **Quit Mithrandir**: Cleanly shuts down background threads and exits the application.
 - **Autostart & Background Launch**: Pass `--background` or `--minimized` to initialize the app in the background without popping up the main window.
+
+### ⚡ Hardware Power Saver & Multi-Distro Adaptability (`src/os_info.rs`)
+
+Mithrandir-RS includes hardware-level battery and power saving controls synced across the Libadwaita UI and the panel indicator:
+- **Intel P-State & CPU EPP**: Toggles `intel_pstate/no_turbo` (`"1"` vs `"0"`) and dynamically switches CPU Energy Performance Preference (`energy_performance_preference`) between `"power"` and `"balance_performance"`.
+- **PCIe ASPM**: Switches PCIe Active State Power Management policy to `"powersupersave"` for deep NVMe and bus power management.
+- **Zero-Password Udev Optimization**: Generates `99-mithrandir-power.rules` dynamically targeting the correct administrative group (`wheel` for Fedora/Arch/openSUSE, `sudo` for Debian/Ubuntu).
+- **SELinux & Immutability Awareness**: Native `/etc/os-release` detection (`src/os_info.rs`) automatically recognizes NixOS and immutable trees, gracefully skipping direct `/etc` modifications with clear user guidance.
 
 ---
 

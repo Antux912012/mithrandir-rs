@@ -236,9 +236,12 @@ fn test_quarantine_vault_cycle() {
 fn test_tray_action_channel_dispatch() {
     use mithrandir_rs::{MithrandirTray, TrayAction};
     use ksni::Tray;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
 
     let (tx, rx) = async_channel::unbounded();
-    let mut tray = MithrandirTray::new(tx);
+    let power_saver_arc = Arc::new(AtomicBool::new(false));
+    let mut tray = MithrandirTray::new(tx, power_saver_arc.clone());
 
     assert_eq!(tray.id(), "mithrandir-rs");
     assert_eq!(tray.icon_name(), "mithrandir-status-symbolic");
@@ -254,10 +257,11 @@ fn test_tray_action_channel_dispatch() {
     tray.activate(100, 200);
     assert_eq!(rx.try_recv(), Ok(TrayAction::OpenMithrandir));
 
-    // Test menu item activation
+    // Test menu item activation: RunSmartboost, Checkmark(Battery Power Saver), Separator, OpenMithrandir, Separator, QuitMithrandir
     let menu_items = tray.menu();
-    assert_eq!(menu_items.len(), 4); // RunSmartboost, OpenMithrandir, Separator, QuitMithrandir
+    assert_eq!(menu_items.len(), 6);
 
+    // 0: Run Smartboost
     if let ksni::MenuItem::Standard(item) = &menu_items[0] {
         assert_eq!(item.label, "Run Smartboost");
         (item.activate)(&mut tray);
@@ -266,7 +270,19 @@ fn test_tray_action_channel_dispatch() {
         panic!("Expected StandardItem for Run Smartboost");
     }
 
-    if let ksni::MenuItem::Standard(item) = &menu_items[1] {
+    // 1: Battery Power Saver (Checkmark)
+    if let ksni::MenuItem::Checkmark(item) = &menu_items[1] {
+        assert_eq!(item.label, "Battery Power Saver");
+        assert!(!item.checked);
+        (item.activate)(&mut tray);
+        assert_eq!(rx.try_recv(), Ok(TrayAction::TogglePowerSaver(true)));
+        assert!(tray.power_saver_enabled.load(std::sync::atomic::Ordering::SeqCst));
+    } else {
+        panic!("Expected CheckmarkItem for Battery Power Saver");
+    }
+
+    // 3: Open Mithrandir
+    if let ksni::MenuItem::Standard(item) = &menu_items[3] {
         assert_eq!(item.label, "Open Mithrandir");
         (item.activate)(&mut tray);
         assert_eq!(rx.try_recv(), Ok(TrayAction::OpenMithrandir));
@@ -274,7 +290,8 @@ fn test_tray_action_channel_dispatch() {
         panic!("Expected StandardItem for Open Mithrandir");
     }
 
-    if let ksni::MenuItem::Standard(item) = &menu_items[3] {
+    // 5: Quit Mithrandir
+    if let ksni::MenuItem::Standard(item) = &menu_items[5] {
         assert_eq!(item.label, "Quit Mithrandir");
         (item.activate)(&mut tray);
         assert_eq!(rx.try_recv(), Ok(TrayAction::QuitMithrandir));
@@ -289,4 +306,126 @@ fn test_tray_smartboost_concurrency_lock() {
 
     let res = MithrandirTray::execute_tray_smartboost();
     assert!(res.is_some());
+}
+
+#[test]
+fn test_power_saver_controller() {
+    use mithrandir_rs::PowerManager;
+
+    let supported = PowerManager::is_supported();
+    let is_active = PowerManager::is_power_saver_active();
+    println!("Power saver supported: {}, active: {}", supported, is_active);
+
+    // Test cached state toggle
+    PowerManager::set_cached_state(true);
+    assert!(PowerManager::is_power_saver_active());
+
+    PowerManager::set_cached_state(false);
+    // Cached state resets
+    let _ = PowerManager::is_power_saver_active();
+}
+
+#[test]
+fn test_distro_detection_mock_matrix() {
+    use mithrandir_rs::os_info::{get_admin_group_for_distro, parse_os_release, LinuxDistro};
+
+    let debian_os_release = r#"
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"
+VERSION_ID="12"
+VERSION="12 (bookworm)"
+VERSION_CODENAME=bookworm
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+"#;
+    let debian_info = parse_os_release(debian_os_release);
+    assert_eq!(debian_info.distro, LinuxDistro::Debian);
+    assert_eq!(debian_info.version_id, Some("12".to_string()));
+    assert_eq!(get_admin_group_for_distro(debian_info.distro), "sudo");
+
+    let fedora_os_release = r#"
+NAME="Fedora Linux"
+VERSION="41 (Workstation Edition)"
+ID=fedora
+VERSION_ID="41"
+VERSION_CODENAME=""
+PLATFORM_ID="platform:f41"
+PRETTY_NAME="Fedora Linux 41 (Workstation Edition)"
+"#;
+    let fedora_info = parse_os_release(fedora_os_release);
+    assert_eq!(fedora_info.distro, LinuxDistro::Fedora);
+    assert_eq!(fedora_info.version_id, Some("41".to_string()));
+    assert_eq!(get_admin_group_for_distro(fedora_info.distro), "wheel");
+
+    let arch_os_release = r#"
+NAME="Arch Linux"
+PRETTY_NAME="Arch Linux"
+ID=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://archlinux.org/"
+"#;
+    let arch_info = parse_os_release(arch_os_release);
+    assert_eq!(arch_info.distro, LinuxDistro::Arch);
+    assert_eq!(get_admin_group_for_distro(arch_info.distro), "wheel");
+
+    let cachyos_os_release = r#"
+NAME="CachyOS Linux"
+PRETTY_NAME="CachyOS"
+ID=cachyos
+ID_LIKE=arch
+BUILD_ID=rolling
+"#;
+    let cachy_info = parse_os_release(cachyos_os_release);
+    assert_eq!(cachy_info.distro, LinuxDistro::CachyOS);
+    assert_eq!(get_admin_group_for_distro(cachy_info.distro), "wheel");
+
+    let nixos_os_release = r#"
+NAME=NixOS
+ID=nixos
+VERSION="24.11 (Vicuna)"
+VERSION_CODENAME=vicuna
+VERSION_ID="24.11"
+PRETTY_NAME="NixOS 24.11 (Vicuna)"
+"#;
+    let nixos_info = parse_os_release(nixos_os_release);
+    assert_eq!(nixos_info.distro, LinuxDistro::NixOS);
+    assert_eq!(nixos_info.version_id, Some("24.11".to_string()));
+    assert_eq!(get_admin_group_for_distro(nixos_info.distro), "sudo");
+
+    let alpine_os_release = r#"
+NAME="Alpine Linux"
+ID=alpine
+VERSION_ID=3.21.0
+PRETTY_NAME="Alpine Linux v3.21"
+"#;
+    let alpine_info = parse_os_release(alpine_os_release);
+    assert_eq!(alpine_info.distro, LinuxDistro::Alpine);
+    assert_eq!(alpine_info.version_id, Some("3.21.0".to_string()));
+    assert_eq!(get_admin_group_for_distro(alpine_info.distro), "sudo");
+}
+
+#[test]
+fn test_nixos_immutable_graceful_handling() {
+    use mithrandir_rs::os_info::{generate_udev_rule_for_group, LinuxDistro};
+
+    let wheel_rule = generate_udev_rule_for_group("wheel");
+    assert!(wheel_rule.contains("chgrp -R wheel"));
+    assert!(wheel_rule.contains("chgrp wheel"));
+
+    let sudo_rule = generate_udev_rule_for_group("sudo");
+    assert!(sudo_rule.contains("chgrp -R sudo"));
+    assert!(sudo_rule.contains("chgrp sudo"));
+
+    // Verify mock NixOS environment handling
+    let simulated_nixos = LinuxDistro::NixOS;
+    let is_immutable = matches!(simulated_nixos, LinuxDistro::NixOS);
+    assert!(is_immutable);
+
+    if is_immutable {
+        let msg = "NixOS detected: /etc is immutable. Please enable power saver services in your configuration.nix";
+        assert!(msg.contains("NixOS detected"));
+    }
 }

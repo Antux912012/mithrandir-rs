@@ -5,27 +5,54 @@ use ksni::{
     Category, Icon, MenuItem, Tray,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrayAction {
     RunSmartboost,
+    TogglePowerSaver(bool),
     OpenMithrandir,
     QuitMithrandir,
 }
 
 pub struct MithrandirTray {
     pub tx: Sender<TrayAction>,
+    pub power_saver_enabled: Arc<AtomicBool>,
+}
+
+static TRAY_HANDLE: std::sync::Mutex<Option<Handle<MithrandirTray>>> = std::sync::Mutex::new(None);
+
+pub fn register_tray_handle(handle: Handle<MithrandirTray>) {
+    if let Ok(mut lock) = TRAY_HANDLE.lock() {
+        *lock = Some(handle);
+    }
+}
+
+pub fn sync_tray_power_saver(active: bool) {
+    if let Ok(lock) = TRAY_HANDLE.lock() {
+        if let Some(ref handle) = *lock {
+            handle.update(move |tray| {
+                tray.power_saver_enabled.store(active, Ordering::SeqCst);
+            });
+        }
+    }
 }
 
 impl MithrandirTray {
-    pub fn new(tx: Sender<TrayAction>) -> Self {
-        Self { tx }
+    pub fn new(tx: Sender<TrayAction>, power_saver_enabled: Arc<AtomicBool>) -> Self {
+        Self {
+            tx,
+            power_saver_enabled,
+        }
     }
 
     /// Spawns the system tray service on a background thread.
     /// Handles Flatpak sandbox D-Bus naming constraints gracefully.
-    pub fn spawn_service(tx: Sender<TrayAction>) -> Result<Handle<Self>, ksni::Error> {
-        let tray = Self::new(tx);
+    pub fn spawn_service(
+        tx: Sender<TrayAction>,
+        power_saver_enabled: Arc<AtomicBool>,
+    ) -> Result<Handle<Self>, ksni::Error> {
+        let tray = Self::new(tx, power_saver_enabled);
         let is_flatpak = std::path::Path::new("/.flatpak-info").exists();
         if is_flatpak {
             tray.disable_dbus_name(true).spawn()
@@ -109,25 +136,42 @@ impl Tray for MithrandirTray {
     }
 
     fn menu(&self) -> Vec<MenuItem<Self>> {
-        let tx1 = self.tx.clone();
-        let tx2 = self.tx.clone();
-        let tx3 = self.tx.clone();
+        let tx_boost = self.tx.clone();
+        let tx_power = self.tx.clone();
+        let tx_open = self.tx.clone();
+        let tx_quit = self.tx.clone();
+
+        let is_power_active = self.power_saver_enabled.load(Ordering::SeqCst);
 
         vec![
             StandardItem {
                 label: "Run Smartboost".into(),
                 icon_name: "media-playback-start-symbolic".into(),
                 activate: Box::new(move |_| {
-                    let _ = tx1.try_send(TrayAction::RunSmartboost);
+                    let _ = tx_boost.try_send(TrayAction::RunSmartboost);
                 }),
                 ..Default::default()
             }
             .into(),
+            CheckmarkItem {
+                label: "Battery Power Saver".into(),
+                icon_name: "battery-symbolic".into(),
+                checked: is_power_active,
+                activate: Box::new(move |tray: &mut MithrandirTray| {
+                    let current = tray.power_saver_enabled.load(Ordering::SeqCst);
+                    let target = !current;
+                    tray.power_saver_enabled.store(target, Ordering::SeqCst);
+                    let _ = tx_power.try_send(TrayAction::TogglePowerSaver(target));
+                }),
+                ..Default::default()
+            }
+            .into(),
+            MenuItem::Separator,
             StandardItem {
                 label: "Open Mithrandir".into(),
                 icon_name: "utilities-system-monitor-symbolic".into(),
                 activate: Box::new(move |_| {
-                    let _ = tx2.try_send(TrayAction::OpenMithrandir);
+                    let _ = tx_open.try_send(TrayAction::OpenMithrandir);
                 }),
                 ..Default::default()
             }
@@ -137,7 +181,7 @@ impl Tray for MithrandirTray {
                 label: "Quit Mithrandir".into(),
                 icon_name: "application-exit-symbolic".into(),
                 activate: Box::new(move |_| {
-                    let _ = tx3.try_send(TrayAction::QuitMithrandir);
+                    let _ = tx_quit.try_send(TrayAction::QuitMithrandir);
                 }),
                 ..Default::default()
             }
